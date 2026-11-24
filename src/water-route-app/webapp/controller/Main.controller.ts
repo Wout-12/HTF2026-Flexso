@@ -9,8 +9,6 @@ import type { ValueState } from "sap/ui/core/library";
 import DateFormat from "sap/ui/core/format/DateFormat";
 import Controller from "sap/ui/core/mvc/Controller";
 import JSONModel from "sap/ui/model/json/JSONModel";
-import Filter from "sap/ui/model/Filter";
-import FilterOperator from "sap/ui/model/FilterOperator";
 import type Context from "sap/ui/model/odata/v4/Context";
 import type ODataModel from "sap/ui/model/odata/v4/ODataModel";
 import type ResourceModel from "sap/ui/model/resource/ResourceModel";
@@ -26,6 +24,8 @@ interface Pipe {
   ID: string;
   pipeID: string;
   mapPath: string;
+  startPoint: string;
+  endPoint: string;
   currentFlowRate: string | number | null;
   currentPressure: string | number | null;
   tier: Tier;
@@ -45,7 +45,7 @@ interface Pipe {
 }
 
 const PIPE_FIELDS = [
-  "ID", "pipeID", "mapPath", "currentFlowRate", "currentPressure", "tier", "rank", "jobSlot", "flowPercent", "affects", "upstreamOf",
+  "ID", "pipeID", "mapPath", "startPoint", "endPoint", "currentFlowRate", "currentPressure", "tier", "rank", "jobSlot", "flowPercent", "affects", "upstreamOf",
   "isBackup", "readingsFresh", "readingAgeMinutes", "sendToIlse", "repairedToday", "deferredToday", "carriedSince", "carriedReason",
 ];
 const REFRESH_MS = 20_000;
@@ -113,6 +113,9 @@ export default class Main extends Controller {
       jobs: [],
       notes: [],
       mapPipes: [],
+      selectedId: "",
+      highlighted: [],
+      info: null,
       mapPlaces: [],
       dialog: { title: "", text: "", save: "", options: [] },
       photo: { title: "", busy: false, items: [] },
@@ -165,9 +168,10 @@ export default class Main extends Controller {
   private async refresh(): Promise<void> {
     try {
       const pipes = await this.readPipes();
-      if ((this.viewModel.getProperty("/mapPlaces") as MapPlace[]).length === 0) await this.readPlaces();
       if (this.destroyed) return;
       this.pipes = pipes.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity) || a.pipeID.localeCompare(b.pipeID));
+      if ((this.viewModel.getProperty("/mapPlaces") as MapPlace[]).length === 0) await this.readPlaces();
+      if (this.destroyed) return;
       this.viewModel.setProperty("/lost", false);
       this.show();
       this.detectAlarms();
@@ -185,9 +189,15 @@ export default class Main extends Controller {
 
   private async readPlaces(): Promise<void> {
     const contexts = await this.model()
-      .bindList("/Landmarks", undefined, [], [new Filter("servicePriority", FilterOperator.NE, null)], { $select: "name,gridCell" })
+      .bindList("/Landmarks", undefined, [], [], { $select: "name,kind,gridCell,suppliedBy,servicePriority" })
       .requestContexts(0, 100);
-    this.viewModel.setProperty("/mapPlaces", contexts.map((context) => context.getObject() as MapPlace));
+    this.viewModel.setProperty("/mapPlaces", contexts.map((context): MapPlace => {
+      const place = context.getObject() as { name: string; kind: string; gridCell: string; suppliedBy: string | null; servicePriority: number | null };
+      const lines = this.pipes.filter((pipe) => !pipe.isBackup);
+      const pipe = this.pipes.find((item) => item.pipeID === place.suppliedBy)
+        ?? lines.find((item) => item.endPoint === place.name) ?? lines.find((item) => item.startPoint === place.name);
+      return { name: place.name, kind: place.kind, gridCell: place.gridCell, served: place.servicePriority !== null, pipeId: pipe?.ID ?? "" };
+    }));
   }
 
   // ---- what is shown ---------------------------------------------------------------------
@@ -217,14 +227,78 @@ export default class Main extends Controller {
     this.viewModel.setProperty("/cards", this.cards());
     this.viewModel.setProperty("/notes", this.notes());
     this.viewModel.setProperty("/mapPipes", this.pipes.map((pipe) => ({
-      mapPath: pipe.mapPath, tier: pipe.tier, flow: Number(pipe.currentFlowRate ?? 0), slot: pipe.jobSlot,
+      id: pipe.ID, label: this.text("mapPipe", displayName(pipe.pipeID), this.text(TIERS[pipe.tier].text)), mapPath: pipe.mapPath, tier: pipe.tier, flow: Number(pipe.currentFlowRate ?? 0), slot: pipe.jobSlot,
     })));
+    this.showSelected();
     const demoPipes = this.pipes.map((pipe) => ({ pipeID: pipe.pipeID, name: displayName(pipe.pipeID) }));
     demoPipes.sort((a, b) => a.name.localeCompare(b.name));
     this.viewModel.setProperty("/demoPipes", demoPipes);
     if (!this.viewModel.getProperty("/demoPipe")) this.viewModel.setProperty("/demoPipe", "BAKERY-BRANCH");
     if (!current) this.viewModel.setProperty("/glove", false);
     this.showGloveText();
+  }
+
+  // ---- map -------------------------------------------------------------------------------
+
+  public onMapSelect(event: Event): void {
+    this.select((event.getParameters() as { id: string }).id);
+  }
+
+  public onShowOnMap(event: Event): void {
+    this.select((event.getSource() as Control).getBindingContext("view")?.getProperty("id") as string);
+    (this.byId("map") as Control).getDomRef()?.scrollIntoView({ block: "nearest" });
+  }
+
+  public onMapClose(): void {
+    this.select("");
+  }
+
+  private select(id: string): void {
+    this.viewModel.setProperty("/selectedId", id);
+    this.showSelected();
+    const pipe = this.pipes.find((item) => item.ID === id);
+    // During the shift the answer is also spoken, so nobody has to read it.
+    if (pipe && this.viewModel.getProperty("/started")) {
+      this.speech.say(this.text("sayPipe", displayName(pipe.pipeID), this.text(TIERS[pipe.tier].text).toLowerCase(), this.spokenReadings(pipe)));
+    }
+  }
+
+  /** Fills the panel on the map; also after a refresh, so it never shows old readings. */
+  private showSelected(): void {
+    const pipe = this.pipes.find((item) => item.ID === this.viewModel.getProperty("/selectedId"));
+    this.viewModel.setProperty("/highlighted", pipe ? this.waterWay(pipe).map((item) => item.ID) : []);
+    if (!pipe) {
+      this.viewModel.setProperty("/info", null);
+      return;
+    }
+    const { text, state, icon } = TIERS[pipe.tier];
+    // The panel goes where the pipe is not. Grid rows count from the south, 8 in total.
+    const rows = pipe.mapPath.split(" ").map((pair) => Number(pair.split(",")[1]));
+    const inNorth = rows.reduce((sum, row) => sum + row, 0) / rows.length > 4;
+    const repaired = pipe.tier === "ok" ? "repairedOk" : pipe.tier === "unknown" ? "repairedUnknown" : "repairedStill";
+    this.viewModel.setProperty("/info", {
+      name: displayName(pipe.pipeID),
+      tier: pipe.tier,
+      tierText: this.text(text),
+      state,
+      icon,
+      place: inNorth ? "bottom" : "top",
+      readings: this.readingsText(pipe),
+      affects: pipe.isBackup ? this.text("backup") : this.text("mapFeeds", pipe.affects),
+      extra: [pipe.repairedToday ? this.text(repaired) : "", pipe.sendToIlse ? this.text("ilseText") : ""].filter(Boolean).join(" · "),
+    });
+  }
+
+  /** The pipe and every pipe the water passes on its way there from the spring. */
+  private waterWay(pipe: Pipe): Pipe[] {
+    const way = [pipe];
+    if (pipe.isBackup) return way;
+    for (const current of way) {
+      for (const before of this.pipes) {
+        if (before.endPoint === current.startPoint && !before.isBackup && !way.includes(before)) way.push(before);
+      }
+    }
+    return way;
   }
 
   private jobs(): Pipe[] {

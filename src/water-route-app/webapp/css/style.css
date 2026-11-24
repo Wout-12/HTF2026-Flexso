@@ -12,7 +12,8 @@
 .wrMark { fill: var(--sapBackgroundColor); stroke: var(--sapTextColor); stroke-width: 6; }
 .wrPinText { fill: var(--sapContent_ContrastTextColor, #fff); font: bold 84px var(--sapFontFamily); text-anchor: middle; dominant-baseline: central; }
 .wrMarkText { fill: var(--sapTextColor); font: bold 64px var(--sapFontFamily); text-anchor: middle; dominant-baseline: central; }
-.wrPlace { fill: var(--sapTextColor); stroke: var(--sapBackgroundColor); stroke-width: 18; paint-order: stroke; font: bold 68px var(--sapFontFamily); text-anchor: middle; }
+.wrPlace, .wrPlaceMinor { fill: var(--sapTextColor); stroke: var(--sapBackgroundColor); stroke-width: 18; paint-order: stroke; font: bold 68px var(--sapFontFamily); text-anchor: middle; }
+.wrPlaceMinor { display: none; }
 
 .wrCard { margin: 0.375rem 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 0.5rem solid var(--sapNeutralColor); background: var(--sapTile_Background); }
 .wrCard[data-tier="alarm"] { border-left-color: var(--sapNegativeColor); }
@@ -60,6 +61,7 @@
     }
     .wrMap svg { max-height: none; border-radius: 0.75rem; }
     .wrMarker { transform: scale(0.6); }
+    .wrPlaceMinor { display: inline; }
     .wrCard { margin: 0 0 1rem; padding: 1.25rem 1.5rem; border-radius: 0.75rem; }
     .wrTitle { font-size: clamp(1.25rem, 2vw, 2.25rem); }
     .wrAction { margin-top: 0.375rem; font-size: clamp(1.125rem, 1.4vw, 1.625rem); }
@@ -88,3 +90,36 @@
     .sapMDialogStretched .wrOptions .wrBig:last-child:nth-child(odd) { grid-column: 1 / -1; }
     .sapMDialogStretched .wrDialogActions .wrBig { min-height: 6rem; font-size: 1.75rem; }
 }
+
+/* Tapping the map */
+.wrMapBox { position: relative; }
+.wrTap { cursor: pointer; }
+.wrPipeGroup { cursor: pointer; outline: none; }
+.wrTouch { fill: none; stroke: transparent; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; }
+.wrGlow { fill: none; stroke: var(--sapTextColor); stroke-linecap: round; stroke-linejoin: round; opacity: 0; transition: opacity 0.15s; }
+.wrPipeGroup:focus-visible .wrGlow { opacity: 0.7; }
+.wrSelected .wrGlow { opacity: 1; }
+.wrFaded { opacity: 0.3; }
+.wrWalk, .wrPulse { pointer-events: none; }
+@media (hover: hover) { .wrPipeGroup:hover .wrGlow { opacity: 0.6; } .wrFaded:hover { opacity: 0.8; } }
+/* Phone and tablet: below the map, so it never hides the water's way. Computer: on the map. */
+@media (min-width: 900px) {
+    .wrMapInfo { position: absolute; left: 1rem; margin: 0; box-shadow: var(--sapContent_Shadow2); width: min(28rem, calc(100% - 2rem)); box-sizing: border-box; }
+    .wrMapInfo[data-place="top"] { top: 1rem; }
+    .wrMapInfo[data-place="bottom"] { bottom: 1rem; }
+}
+
+/* Drawings of the places. Paint colours that match the painted map, they carry no status. */
+.wrArt path { stroke: #2b2118; stroke-width: 5; stroke-linejoin: round; }
+.wrArt:hover { filter: brightness(1.2); }
+.wrWall { fill: #ead9b5; }
+.wrWood { fill: #6b4527; }
+.wrStone { fill: #8d8a83; }
+.wrLight { fill: #f6e7b0; }
+.wrRoofRed { fill: #a5492f; }
+.wrRoofBlue { fill: #4d6478; }
+.wrRoofGold { fill: #b9802f; }
+.wrLeaf { fill: #3f6136; }
+.wrWater { fill: #5ba7cf; }
+.wrArt .wrSmoke { fill: #d8d4cb; stroke: none; opacity: 0.8; }
+.wrArt .wrCross { fill: none; stroke: #ead9b5; }

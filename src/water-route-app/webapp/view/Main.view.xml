@@ -24,7 +24,25 @@
         <content>
             <MessageStrip id="lost" text="{i18n>connectionLost}" type="Error" showIcon="true" visible="{view>/lost}" />
             <VBox id="layout" class="wrLayout" renderType="Bare">
-                <c:VillageMap id="map" src="{view>/mapUrl}" label="{i18n>mapLabel}" pipes="{view>/mapPipes}" places="{view>/mapPlaces}" />
+                <VBox id="mapBox" class="wrMapBox" renderType="Bare">
+                    <c:VillageMap id="map" src="{view>/mapUrl}" label="{i18n>mapLabel}" pipes="{view>/mapPipes}" places="{view>/mapPlaces}" selected="{view>/selectedId}" highlighted="{view>/highlighted}" select=".onMapSelect" />
+                    <VBox id="mapInfo" class="wrCard wrMapInfo" renderType="Bare" visible="{= !!${view>/info}}">
+                        <customData>
+                            <core:CustomData id="infoTier" key="tier" value="{view>/info/tier}" writeToDom="true" />
+                            <core:CustomData id="infoPlace" key="place" value="{view>/info/place}" writeToDom="true" />
+                        </customData>
+                        <HBox id="infoHead" justifyContent="SpaceBetween" alignItems="Center">
+                            <Title id="infoTitle" text="{view>/info/name}" level="H2" titleStyle="H4" wrapping="true" />
+                            <HBox id="infoRight" alignItems="Center">
+                                <ObjectStatus id="infoStatus" text="{view>/info/tierText}" state="{view>/info/state}" icon="{view>/info/icon}" inverted="true" />
+                                <Button id="infoClose" icon="sap-icon://decline" type="Transparent" tooltip="{i18n>close}" press=".onMapClose" />
+                            </HBox>
+                        </HBox>
+                        <Text id="infoReadings" text="{view>/info/readings}" />
+                        <Text id="infoAffects" text="{view>/info/affects}" />
+                        <Text id="infoExtra" text="{view>/info/extra}" visible="{= !!${view>/info/extra}}" />
+                    </VBox>
+                </VBox>
                 <VBox id="side" class="wrSide" renderType="Bare">
                     <VBox id="jobs" items="{path: 'view>/jobs', templateShareable: false}">
                         <VBox id="job" class="wrCard">
@@ -37,7 +55,10 @@
                             </HBox>
                             <HBox id="jobRight" justifyContent="SpaceBetween" alignItems="Center">
                                 <Title id="jobAction" text="{view>action}" level="H3" titleStyle="H5" wrapping="true" class="wrAction" />
-                                <Button id="jobPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" press=".onPhotos" />
+                                <HBox id="jobButtons">
+                                    <Button id="jobMap" icon="sap-icon://map" type="Transparent" tooltip="{i18n>showOnMap}" press=".onShowOnMap" />
+                                    <Button id="jobPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" press=".onPhotos" />
+                                </HBox>
                             </HBox>
                             <Text id="jobReadings" class="wrText" text="{view>readings}" />
                             <Text id="jobAffects" class="wrText" text="{view>affects}" maxLines="2" />
@@ -68,7 +89,10 @@
                                 </HBox>
                                 <HBox id="cardRight" justifyContent="SpaceBetween" alignItems="Center">
                                     <Text id="cardText" text="{view>text}" class="wrText" />
-                                    <Button id="cardPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" visible="{= ${view>tier} !== 'ilse' }" press=".onPhotos" />
+                                    <HBox id="cardButtons">
+                                        <Button id="cardMap" icon="sap-icon://map" type="Transparent" tooltip="{i18n>showOnMap}" press=".onShowOnMap" />
+                                        <Button id="cardPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" visible="{= ${view>tier} !== 'ilse' }" press=".onPhotos" />
+                                    </HBox>
                                 </HBox>
                             </VBox>
                         </VBox>
