@@ -42,11 +42,16 @@ interface Pipe {
   deferredToday: boolean;
   carriedSince: string | null;
   carriedReason: string | null;
+  trustStatus: string | null;
+  trustNote: string | null;
+  trustAt: string | null;
+  trustOn: string | null;
 }
 
 const PIPE_FIELDS = [
   "ID", "pipeID", "mapPath", "startPoint", "endPoint", "currentFlowRate", "currentPressure", "tier", "rank", "jobSlot", "flowPercent", "affects", "upstreamOf",
   "isBackup", "readingsFresh", "readingAgeMinutes", "sendToIlse", "repairedToday", "deferredToday", "carriedSince", "carriedReason",
+  "trustStatus", "trustNote", "trustAt", "trustOn",
 ];
 const REFRESH_MS = 20_000;
 const ALARM_SPEECH_MS = 9_000;
@@ -220,6 +225,7 @@ export default class Main extends Controller {
       action: this.actionText(pipe),
       upstream: this.upstreamText(pipe),
       waiting: this.waitingText(pipe),
+      trust: this.trustText(pipe),
     })));
     const anyFlagged = this.pipes.some((pipe) => pipe.tier !== "ok");
     this.viewModel.setProperty("/emptyText", current ? "" : this.text(anyFlagged ? "allDone" : "nothingToDo"));
@@ -288,7 +294,7 @@ export default class Main extends Controller {
       place: inNorth ? "bottom" : "top",
       readings: this.readingsText(pipe),
       affects: pipe.isBackup ? this.text("backup") : this.text("mapFeeds", pipe.affects),
-      extra: [pipe.repairedToday ? this.text(repaired) : "", pipe.sendToIlse ? this.text("ilseText") : ""].filter(Boolean).join(" · "),
+      extra: [pipe.repairedToday ? this.text(repaired) : "", this.trustText(pipe) || (pipe.sendToIlse ? this.text("ilseText") : "")].filter(Boolean).join(" · "),
     });
   }
 
@@ -325,7 +331,7 @@ export default class Main extends Controller {
     for (const pipe of this.pipes.filter((item) => item.sendToIlse)) {
       cards.push({
         id: pipe.ID, tier: "ilse", name: displayName(pipe.pipeID), badge: this.text("ilseBadge"), state: "Information",
-        icon: "sap-icon://forward", text: this.text("ilseText"),
+        icon: "sap-icon://forward", text: this.trustText(pipe) || this.text("ilseText"),
       });
     }
     return cards;
@@ -350,7 +356,7 @@ export default class Main extends Controller {
         return { text, icon, state: state as string };
       });
     for (const pipe of this.pipes.filter((item) => item.sendToIlse)) {
-      notes.push({ text: this.text("sentToIlse", displayName(pipe.pipeID)), icon: "sap-icon://forward", state: "None" });
+      notes.push({ text: pipe.trustStatus === "notTrusted" ? this.text("noteItem", displayName(pipe.pipeID), this.trustText(pipe)) : this.text("sentToIlse", displayName(pipe.pipeID)), icon: "sap-icon://forward", state: "None" });
     }
     return notes;
   }
@@ -376,6 +382,15 @@ export default class Main extends Controller {
   private upstreamText(pipe: Pipe): string {
     if (!pipe.upstreamOf) return "";
     return this.text("upstream", pipe.upstreamOf.split(",").map(displayName).join(", "));
+  }
+
+  /** Ilse's mark: on this pipe's reading, its sensor or a repair in the log. */
+  private trustText(pipe: Pipe): string {
+    if (!pipe.trustStatus) return "";
+    const on = this.text({ Sensor: "trustSensor", Repair: "trustRepair" }[pipe.trustOn ?? ""] ?? "trustPipe");
+    if (pipe.trustStatus === "review") return this.text("trustReview", on);
+    const marked = DateFormat.getDateInstance({ pattern: "d MMM" }).format(new Date(pipe.trustAt ?? ""));
+    return `${this.text("trustNot", on, marked)}${pipe.trustNote ? `: ${pipe.trustNote}` : ""}`;
   }
 
   private waitingText(pipe: Pipe): string {

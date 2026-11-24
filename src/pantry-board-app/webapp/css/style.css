@@ -120,3 +120,6 @@
 
 /* Detail: each step of the sum on its own line. */
 .pbLines > .pbText { display: block; padding-left: 0.875rem; border-left: 2px solid var(--sapGroup_ContentBorderColor); }
+
+/* Ilse's mark on exactly this number. */
+.pbTileTrust { align-self: flex-start; margin-top: 0.25rem; padding: 0.125rem 0.5rem; border: 1px solid var(--sapContent_LabelColor); border-radius: 0.375rem; font-size: 0.8125rem; font-weight: bold; }

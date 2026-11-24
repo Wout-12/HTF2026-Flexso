@@ -65,6 +65,7 @@
                             <Text id="jobReadings" class="wrText" text="{view>readings}" />
                             <Text id="jobAffects" class="wrText" text="{view>affects}" maxLines="2" />
                             <ObjectStatus id="jobUpstream" text="{view>upstream}" icon="sap-icon://ti/arrow-up-circle" state="Information" visible="{= !!${view>upstream}}" />
+                            <ObjectStatus id="jobTrust" text="{view>trust}" icon="sap-icon://ti/rubber-stamp" state="Information" visible="{= !!${view>trust}}" />
                             <ObjectStatus id="jobWaiting" text="{view>waiting}" icon="sap-icon://pending" state="Information" visible="{= !!${view>waiting}}" />
                         </VBox>
                     </VBox>

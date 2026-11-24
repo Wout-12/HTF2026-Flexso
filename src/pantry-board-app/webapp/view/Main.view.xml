@@ -35,13 +35,13 @@
             </HBox>
             <HBox id="tiles" class="pbTiles" renderType="Bare" items="{path: 'view>/tiles', templateShareable: false}">
                 <c:PantryTile id="tile" icon="{view>icon}" title="{view>name}" risk="{view>risk}" riskText="{view>riskText}" riskIcon="{view>riskIcon}"
-                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}"
+                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}" trust="{view>trust}"
                     press=".onTile" />
             </HBox>
             <Title id="fineTitle" class="pbSection" text="{i18n>fineTitle}" level="H2" titleStyle="H6" visible="{= ${view>/fineTiles}.length > 0 }" />
             <HBox id="fineTiles" class="pbTiles pbTilesFine" renderType="Bare" items="{path: 'view>/fineTiles', templateShareable: false}">
                 <c:PantryTile id="fineTile" compact="true" icon="{view>icon}" title="{view>name}" risk="{view>risk}" riskText="{view>riskText}" riskIcon="{view>riskIcon}"
-                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}"
+                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}" trust="{view>trust}"
                     press=".onTile" />
             </HBox>
         </content>
@@ -51,6 +51,7 @@
             <content>
                 <VBox id="detail" class="pbDialog" renderType="Bare">
                     <ObjectStatus id="detailRisk" text="{view>/detail/riskText}" icon="{view>/detail/riskIcon}" state="{view>/detail/state}" inverted="true" />
+                    <ObjectStatus id="detailTrust" text="{view>/detail/trust}" icon="sap-icon://ti/rubber-stamp" state="Information" visible="{= !!${view>/detail/trust}}" />
                     <Title id="whyTitle" text="{i18n>whyTitle}" level="H2" />
                     <VBox id="why" renderType="Bare" class="pbLines" items="{path: 'view>/detail/why', templateShareable: false}">
                         <Text id="whyLine" class="pbText" text="{view>text}" />

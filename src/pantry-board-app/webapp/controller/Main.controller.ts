@@ -28,7 +28,7 @@ interface Item {
   belowOn: string | null; panicOn: string | null; orderOn: string | null; orderQuantity: number | null; arrivesOn: string | null;
   arrivalStock: Num; arrivalGap: Num; useUntilArrival: Num; weekUse: Num; target: Num; marketDay: string | null;
   supplierName: string | null; leadDays: number | null; isEstimate: boolean; orderedQuantity: Num; dueOn: string | null;
-  recordedOn: string; oldCount: boolean; boardDay: string;
+  trustStatus: string | null; trustNote: string | null; trustAt: string | null; recordedOn: string; oldCount: boolean; boardDay: string;
 }
 
 interface Line { id: string; name: string; unit: string; value: number; valueText: string; hint: string; ordered: number | null; unknown: boolean; confirmed: boolean; okText: string }
@@ -37,7 +37,7 @@ const FIELDS = [
   "ID", "itemID", "name", "unit", "icon", "currentQuantity", "minStockLevel", "consumptionRate", "marketDayFactor", "supplier_ID", "stockAsOf", "countedAt",
   "rank", "risk", "orderState", "projected", "daysLeft", "runsOutOn", "belowOn", "panicOn", "orderOn", "orderQuantity", "arrivesOn", "arrivalStock",
   "arrivalGap", "useUntilArrival", "weekUse", "target", "marketDay", "supplierName", "leadDays", "isEstimate", "orderedQuantity", "dueOn",
-  "recordedOn", "oldCount", "boardDay",
+  "recordedOn", "oldCount", "boardDay", "trustStatus", "trustNote", "trustAt",
 ];
 const REFRESH_MS = 30_000;
 const LONG_PRESS_MS = 800;
@@ -85,7 +85,7 @@ export default class Main extends Controller {
   public onInit(): void {
     this.viewModel = new JSONModel({
       now: new Date(), busy: true, lost: false, demoText: "", headline: "", reminders: "", messageCount: "", tiles: [], fineTiles: [], messages: [], suppliers: [], photos: [],
-      detail: { name: "", riskText: "", riskIcon: "", state: "None", why: [], wait: [], markText: "" },
+      detail: { name: "", trust: "", riskText: "", riskIcon: "", state: "None", why: [], wait: [], markText: "" },
       pad: { title: "", value: "", unit: "", keys: PAD_KEYS.map((text) => ({ text })), withPhoto: false, photoText: "" },
       lines: { title: "", dock: false, when: "now", items: [], hint: "", photoText: "", hasPhoto: false, note: "" },
     });
@@ -183,6 +183,7 @@ export default class Main extends Controller {
       order: item.orderState === "none" ? "" : this.text(item.orderState === "late" ? "orderLate" : "orderPlaced", day(item.dueOn)),
       market: Number(item.marketDayFactor) > 1 ? this.text("marketHint") : "",
       age: this.ageText(item),
+      trust: this.trustText(item, false),
     });
     this.viewModel.setProperty("/tiles", this.items.filter((item) => this.needsAttention(item)).map(toTile));
     this.viewModel.setProperty("/fineTiles", this.items.filter((item) => !this.needsAttention(item)).map(toTile));
@@ -193,6 +194,14 @@ export default class Main extends Controller {
     this.viewModel.setProperty("/headline", orders.length === 0 ? this.text("headlineNone")
       : orders.length === 1 ? this.text("headlineOne", orders[0].name.toLowerCase()) : this.text("headlineMany", orders.length));
     this.viewModel.setProperty("/reminders", this.reminders().join(" "));
+  }
+
+  /** The same stamp in every app: Ilse's note or decision, on exactly this number. */
+  private trustText(item: Item, withReason: boolean): string {
+    if (!item.trustStatus) return "";
+    if (item.trustStatus === "review") return this.text("trustReview");
+    const stamp = this.text("trustNot", day((item.trustAt ?? "").slice(0, 10)));
+    return withReason && item.trustNote ? `${stamp}: ${item.trustNote}` : stamp;
   }
 
   private ageText(item: Item): string {
@@ -276,6 +285,7 @@ export default class Main extends Controller {
     const canOrder = this.needsOrder(item) && Number(item.orderQuantity) > 0;
     this.viewModel.setProperty("/detail", {
       name: item.name,
+      trust: this.trustText(item, true),
       riskText: this.text(RISKS[item.risk].text),
       riskIcon: RISKS[item.risk].icon,
       state: RISKS[item.risk].state,

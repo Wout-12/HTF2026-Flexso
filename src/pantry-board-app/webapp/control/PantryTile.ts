@@ -21,6 +21,7 @@ export default class PantryTile extends Control {
       detail: { type: "string", defaultValue: "" },
       order: { type: "string", defaultValue: "" },
       market: { type: "string", defaultValue: "" },
+      trust: { type: "string", defaultValue: "" },
       age: { type: "string", defaultValue: "" },
       /** A product with nothing to do: one quiet line. */
       compact: { type: "boolean", defaultValue: false },
@@ -63,6 +64,7 @@ export default class PantryTile extends Control {
       line(get("action"), "pbTileAction");
       line(get("detail"), "pbTileDetail");
       line(get("order"), "pbTileOrder");
+      line(get("trust"), "pbTileTrust");
       rm.close("span").close("button");
     },
   };
