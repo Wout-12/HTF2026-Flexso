@@ -6,7 +6,8 @@ import type ODataModel from "sap/ui/model/odata/v4/ODataModel";
 import type ResourceModel from "sap/ui/model/resource/ResourceModel";
 import { speak, stopSpeaking } from "../model/speak";
 
-interface Square { mood: string; sentence: string; news: { kind: string; text: string; good: boolean }[]; isDemo: boolean }
+interface Day { label: string; sky: string; high: number; low: number; rainChance: number; wind: number }
+interface Square { report: string; days: Day[]; news: { kind: string; text: string; good: boolean }[]; isDemo: boolean }
 
 const REFRESH_MS = 20_000;
 const CRIER_ITEMS = 3;
@@ -32,7 +33,7 @@ export default class Main extends Controller {
   private destroyed = false;
 
   public onInit(): void {
-    this.viewModel = new JSONModel({ now: new Date(), lost: false, mood: "", moodText: "", sentence: "", news: [], ticker: "", isDemo: false });
+    this.viewModel = new JSONModel({ now: new Date(), lost: false, report: "", today: {}, days: [], news: [], ticker: "", isDemo: false });
     this.getView()?.setModel(this.viewModel, "view");
     void this.startUp();
   }
@@ -51,8 +52,8 @@ export default class Main extends Controller {
     if (!this.destroyed) this.timer = window.setInterval(() => void this.refresh(), REFRESH_MS);
   }
 
-  private text(key: string): string {
-    return this.bundle.getText(key, undefined) ?? key;
+  private text(key: string, value?: number): string {
+    return this.bundle.getText(key, value === undefined ? undefined : [value]) ?? key;
   }
 
   private async refresh(): Promise<void> {
@@ -74,9 +75,13 @@ export default class Main extends Controller {
 
   private show(square: Square): void {
     this.square = square;
-    this.viewModel.setProperty("/mood", square.mood);
-    this.viewModel.setProperty("/moodText", this.text(`mood${capital(square.mood)}`));
-    this.viewModel.setProperty("/sentence", square.sentence);
+    const days = square.days.map((item) => ({
+      label: item.label, sky: item.sky, skyText: this.text(`sky${capital(item.sky)}`), high: this.text("degrees", item.high), low: this.text("low", item.low),
+      rain: this.text("rain", item.rainChance), wind: this.text("wind", item.wind),
+    }));
+    this.viewModel.setProperty("/report", square.report);
+    this.viewModel.setProperty("/today", days[0] ?? {});
+    this.viewModel.setProperty("/days", days.slice(1));
     this.viewModel.setProperty("/isDemo", square.isDemo);
     this.viewModel.setProperty("/news", square.news.map((item) => ({
       text: item.text, kind: item.kind, kindText: this.text(`kind${capital(item.kind)}`), icon: ICONS[item.kind], ribbon: item.good ? this.text("good") : "",
@@ -84,13 +89,13 @@ export default class Main extends Controller {
     this.viewModel.setProperty("/ticker", square.news.map((item) => `${item.text}   ✦   `).join(""));
   }
 
-  /** The town crier: a bell, then the weather and the first news out loud. */
+  /** The town crier: a bell, then the weather report and the first news out loud. */
   public onBell(): void {
     if (!this.square) return;
     stopSpeaking();
     this.ring();
     const news = this.square.news.slice(0, CRIER_ITEMS).map((item) => item.text).join(" ");
-    const text = this.bundle.getText("crier", [this.square.sentence, news]) ?? "";
+    const text = this.bundle.getText("crier", [this.square.report, news]) ?? "";
     window.clearTimeout(this.crierTimer);
     this.crierTimer = window.setTimeout(() => void speak(text), BELL_MS);
   }

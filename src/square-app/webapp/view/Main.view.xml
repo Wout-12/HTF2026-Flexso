@@ -18,9 +18,34 @@
                 <MessageStrip id="lost" text="{i18n>lost}" type="Error" showIcon="true" visible="{view>/lost}" />
                 <HBox id="main" class="sqMain" renderType="Bare">
                     <VBox id="weatherBox" class="sqWeatherBox" renderType="Bare">
-                        <c:Weather id="weather" mood="{view>/mood}" label="{view>/moodText}" />
-                        <Title id="mood" class="sqMoodText" text="{view>/moodText}" level="H2" />
-                        <Text id="sentence" textAlign="Center" class="sqSentence" text="{view>/sentence}" />
+                        <Title id="weatherTitle" class="sqBoardTitle" text="{i18n>weatherTitle}" level="H2" />
+                        <HBox id="today" class="sqToday" renderType="Bare">
+                            <c:Weather id="weather" sky="{view>/today/sky}" label="{view>/today/skyText}" />
+                            <VBox id="todayText" class="sqTodayText" renderType="Bare">
+                                <Title id="high" class="sqHigh" text="{view>/today/high}" level="H3" />
+                                <Text id="todaySky" class="sqSkyText" text="{view>/today/skyText}" />
+                                <Text id="low" class="sqSmall" text="{view>/today/low}" />
+                                <HBox id="rainBox" class="sqFact" renderType="Bare">
+                                    <core:Icon id="rainIcon" src="sap-icon://ti/umbrella" alt="{i18n>rainLabel}" tooltip="{i18n>rainLabel}" decorative="false" />
+                                    <Text id="rain" class="sqSmall" text="{view>/today/rain}" />
+                                </HBox>
+                                <HBox id="windBox" class="sqFact" renderType="Bare">
+                                    <core:Icon id="windIcon" src="sap-icon://ti/wind" alt="{i18n>windLabel}" tooltip="{i18n>windLabel}" decorative="false" />
+                                    <Text id="wind" class="sqSmall" text="{view>/today/wind}" />
+                                </HBox>
+                            </VBox>
+                        </HBox>
+                        <Text id="report" textAlign="Center" class="sqSentence" text="{view>/report}" />
+                        <HBox id="days" class="sqDays" renderType="Bare" items="{path: 'view>/days', templateShareable: false}">
+                            <VBox id="day" class="sqDay" renderType="Bare">
+                                <Text id="dayName" class="sqDayName" text="{view>label}" />
+                                <c:Weather id="dayWeather" sky="{view>sky}" label="{view>skyText}" />
+                                <Text id="daySky" class="sqSmall" text="{view>skyText}" />
+                                <Text id="dayHigh" class="sqDayHigh" text="{view>high}" />
+                                <Text id="dayRain" class="sqSmall" text="{view>rain}" tooltip="{i18n>rainLabel}" />
+                            </VBox>
+                        </HBox>
+                        <Text id="source" class="sqSmall" text="{i18n>weatherSource}" />
                         <Button id="bell" class="sqBell" icon="sap-icon://ti/bell-ringing" text="{i18n>bellText}" tooltip="{i18n>bell}" press=".onBell" />
                         <Text id="demo" class="sqDemo" text="{i18n>demo}" visible="{view>/isDemo}" />
                     </VBox>

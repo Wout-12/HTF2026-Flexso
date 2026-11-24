@@ -1,17 +1,19 @@
 /**
- * The Oakhaven Square: village weather and village news, for everybody. Pure function: no database
- * and no clock of its own. It only returns finished sentences, because the square is public: no
+ * The Oakhaven Square: a weather report and the village news, for everybody. Pure function: no
+ * database and no clock of its own. The two have nothing to do with each other. It only returns finished sentences, because the square is public: no
  * names behind a doubtful change, no raw readings, no money unless the council said yes.
  */
 import type { Decision, MoneyLine, SheetResult } from './council-sheet';
+import type { WeatherDay } from './demo-weather';
 import { addDays, daysBetween } from './pantry-forecast';
 
-export type Mood = 'sunny' | 'cloudy' | 'rain' | 'storm';
 export type Kind = 'water' | 'bakery' | 'council' | 'library' | 'mystery';
 
 export interface SquareInput {
   readonly now: string;
   readonly sheet: SheetResult;
+  /** Today and the days after; simulated. */
+  readonly weather: readonly WeatherDay[];
   /** Job number of today per pipe, from Maren's route. */
   readonly jobSlots: Readonly<Record<string, number | null>>;
   /** Real, unmarked repairs; `by` is only filled for a known villager. */
@@ -28,8 +30,8 @@ export interface SquareInput {
 
 export interface NewsItem { readonly kind: Kind; readonly text: string; readonly date: string; readonly good: boolean }
 export interface Square {
-  readonly mood: Mood;
-  readonly sentence: string;
+  readonly report: string;
+  readonly days: readonly (WeatherDay & { readonly label: string })[];
   readonly news: readonly NewsItem[];
   readonly isDemo: boolean;
 }
@@ -72,34 +74,15 @@ export function fraction(percent: number): string | null {
   return steps.find(([limit]) => percent <= limit)?.[1] ?? null;
 }
 
-// ---- weather -------------------------------------------------------------------------------
+// ---- weather report --------------------------------------------------------------------------
 
-function weather(input: SquareInput): { mood: Mood; sentence: string } {
-  const { water, food } = input.sheet;
-  const inState = (state: string): string[] => water.areas.filter((area) => area.state === state).map((area) => place(area.name));
-  const [short, low, unknown] = [inState('badlyShort'), inState('runningLow'), inState('cantTell')];
-  const open = input.notices.filter((notice) => !notice.cleared);
-  const is = (names: readonly string[], text: string): string => `${joined(names)} ${names.length > 1 ? 'are' : 'is'} ${text}`;
+const SKIES: Readonly<Record<WeatherDay['sky'], string>> = { sunny: 'Sunny', cloudy: 'Cloudy, mostly dry', rain: 'Rainy', storm: 'Stormy, with thunder' };
 
-  const shortages: string[] = [];
-  if (short.length > 0) shortages.push(is(short, 'badly short on water'));
-  if (food.verdict === 'notAllRight') shortages.push('some food runs out before it can arrive');
-  if (low.length > 0) shortages.push(is(low, 'running low on water'));
-  if (food.verdict === 'notYet') shortages.push('some food runs out this week unless it is ordered in time');
-  if (food.verdict === 'atRisk') shortages.push('some food depends on a delivery that is still on its way');
-  const doubts: string[] = [];
-  if (unknown.length > 0) doubts.push(`We can't tell about the water at ${joined(unknown)}.`);
-  if (food.verdict === 'cantTell') doubts.push("We can't be sure about food until Tobin's recount.");
-  if (open.length > 0) doubts.push('The library is checking a number.');
-
-  const mood: Mood = short.length > 0 || food.verdict === 'notAllRight' ? 'storm' : shortages.length > 0 ? 'rain' : doubts.length > 0 ? 'cloudy' : 'sunny';
-  const word = { storm: 'Stormy.', rain: 'Rainy.', cloudy: 'Cloudy.', sunny: 'Sunny.' }[mood];
-  if (mood === 'sunny') return { mood, sentence: `${word} Everyone has water and the pantry is fine this week.` };
-  const parts = [word];
-  if (shortages.length > 0) parts.push(`${capital(shortages.slice(0, 2).join(', and '))}.`);
-  parts.push(...doubts.slice(0, shortages.length > 0 ? 1 : 2));
-  if (shortages.length > 2) parts.push('More on the board.');
-  return { mood, sentence: parts.join(' ') };
+function report([today, tomorrow]: readonly WeatherDay[]): string {
+  if (!today) return '';
+  const wind = today.wind >= 40 ? 'a strong wind' : today.wind >= 20 ? 'a fresh wind' : 'a light wind';
+  const next = tomorrow ? ` Tomorrow: ${SKIES[tomorrow.sky].toLowerCase()}, ${tomorrow.high} degrees.` : '';
+  return `${SKIES[today.sky]} today, up to ${today.high} degrees with ${wind}.${next}`;
 }
 
 // ---- news ----------------------------------------------------------------------------------
@@ -150,6 +133,8 @@ function bakeryNews(input: SquareInput, today: string): NewsItem[] {
   for (const line of food.lines.filter((entry) => entry.reliable && (entry.state === 'notAllRight' || input.panic.includes(entry.name)))) {
     news.push(item(`${line.name} will be scarce until ${line.orderedFor && line.orderedFor >= today ? `the delivery ${dayText(line.orderedFor, today)}` : 'the next delivery'}.`));
   }
+  if (food.verdict === 'notYet') news.push(item('Some food runs out this week unless Tobin orders it in time.'));
+  if (food.verdict === 'atRisk') news.push(item('Some food depends on a delivery that is still on its way.'));
   if (food.verdict === 'cantTell') {
     const old = food.lines.filter((line) => (line.ageDays ?? 0) > OLD_COUNT_DAYS).length > food.lines.length / 2;
     news.push(item(`We can't tell about food yet. ${old ? 'Most pantry counts are over a week old' : 'Some pantry counts are not sure enough'}, so Tobin needs to count again.`));
@@ -208,7 +193,8 @@ export function buildSquare(input: SquareInput): Square {
     kind: 'mystery', good: false, date: today, text: 'An old line in the repair book is signed only "W. S.", from the longest night of 2024. The library would like to know who wrote it.',
   };
   return {
-    ...weather(input),
+    report: report(input.weather),
+    days: input.weather.map((entry, index) => ({ ...entry, label: index === 0 ? 'Today' : weekFormat.format(date(entry.day)).slice(0, 3) })),
     news: ordered([...waterNews(input, today), ...libraryNews(input, today), ...bakeryNews(input, today), ...councilNews(input, today), mystery], today),
     isDemo: input.sheet.isDemo,
   };

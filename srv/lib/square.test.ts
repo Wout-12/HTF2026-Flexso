@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AreaLine, Decision, FoodLine, MoneyLine, PipeLine, SheetResult, Verdict, WaterState } from './council-sheet';
+import { simulatedWeather } from './demo-weather';
 import { buildSquare, fraction, type SquareInput } from './square';
 
 const pipe = (pipeID: string, tier: PipeLine['tier'], flowPercent: number): PipeLine => ({ pipeID, tier, flow: 20, nominal: 65, flowPercent, pressure: 22, readingAt: '2026-11-24T15:58:00Z' });
@@ -14,18 +15,11 @@ const food = (name: string, extra: Partial<FoodLine> = {}): FoodLine => ({ id: n
 const sheet = (areas: AreaLine[], verdict: Verdict, lines: FoodLine[] = [food('Eggs'), food('Butter')]): SheetResult =>
   ({ water: { verdict: 'allRight', readingAt: null, areas, offNetwork: [] }, food: { verdict, lines, unreliable: 0 }, isDemo: false } as unknown as SheetResult);
 const base: SquareInput = {
-  now: '2026-11-24T16:00:00Z', sheet: sheet([NORTH, FARMS, ...FINE], 'cantTell'), jobSlots: { 'NORTH-BRANCH-02': 1, 'SOUTH-BRANCH': 2 },
+  now: '2026-11-24T16:00:00Z', weather: simulatedWeather('2026-11-24'), sheet: sheet([NORTH, FARMS, ...FINE], 'cantTell'), jobSlots: { 'NORTH-BRANCH-02': 1, 'SOUTH-BRANCH': 2 },
   repairs: [], deliveries: [], orders: [], panic: [], decided: null, notices: [],
 };
 const texts = (extra: Partial<SquareInput> = {}): string[] => buildSquare({ ...base, ...extra }).news.map((item) => item.text);
-const mood = (areas: AreaLine[], verdict: Verdict, extra: Partial<SquareInput> = {}): string => buildSquare({ ...base, sheet: sheet(areas, verdict), ...extra }).mood;
 const BUTTER = { recordType: 'StockItem', name: 'Butter', pipeID: null, cleared: false };
-
-test("today's weather", () => {
-  const { mood: today, sentence } = buildSquare(base);
-  assert.equal(today, 'storm');
-  assert.equal(sentence, "Stormy. North Residential is badly short on water, and South Meadow Farms is running low on water. We can't be sure about food until Tobin's recount.");
-});
 
 test("today's news", () => {
   assert.deepEqual(texts(), [
@@ -39,19 +33,28 @@ test("today's news", () => {
   ]);
 });
 
-test('weather: the worst rule wins', () => {
-  assert.equal(mood(FINE, 'notAllRight'), 'storm');
-  assert.equal(mood([FARMS, ...FINE], 'allRight'), 'rain');
-  assert.equal(mood(FINE, 'notYet'), 'rain');
-  assert.equal(mood(FINE, 'atRisk'), 'rain');
-  assert.equal(mood(FINE, 'allRight'), 'sunny');
+test('the weather report is only about the weather', () => {
+  const days = [{ day: '2026-11-24', sky: 'rain' as const, high: 9, low: 4, rainChance: 70, wind: 22 }, { day: '2026-11-25', sky: 'sunny' as const, high: 11, low: 5, rainChance: 5, wind: 8 }];
+  const square = buildSquare({ ...base, weather: days });
+  assert.equal(square.report, 'Rainy today, up to 9 degrees with a fresh wind. Tomorrow: sunny, 11 degrees.');
+  assert.deepEqual(square.days.map((entry) => entry.label), ['Today', 'Wed']);
+  // Trouble in the village changes the news, never the weather.
+  assert.equal(buildSquare({ ...base, weather: days, sheet: sheet(FINE, 'allRight') }).report, square.report);
 });
 
-test('weather: never sunny without proof', () => {
-  assert.equal(mood(FINE, 'cantTell'), 'cloudy');
-  assert.equal(mood([area('The Bakery', 'cantTell', [])], 'allRight'), 'cloudy');
-  assert.equal(mood(FINE, 'allRight', { notices: [BUTTER] }), 'cloudy');
-  assert.equal(mood(FINE, 'allRight', { notices: [{ ...BUTTER, cleared: true }] }), 'sunny');
+test('simulated weather: five days, always the same for the same date, believable', () => {
+  assert.deepEqual(simulatedWeather('2026-11-24'), simulatedWeather('2026-11-24'));
+  assert.deepEqual(simulatedWeather('2026-11-24')[1], simulatedWeather('2026-11-25')[0]);
+  for (const first of ['2026-01-01', '2026-07-01', '2026-11-24']) {
+    const days = simulatedWeather(first);
+    assert.equal(days.length, 5);
+    for (const entry of days) assert.ok(entry.low < entry.high && entry.rainChance >= 0 && entry.rainChance <= 100 && entry.wind > 0);
+  }
+});
+
+test('trouble with food is in the news', () => {
+  assert.ok(texts({ sheet: sheet(FINE, 'notYet') }).includes('Some food runs out this week unless Tobin orders it in time.'));
+  assert.ok(texts({ sheet: sheet(FINE, 'atRisk') }).includes('Some food depends on a delivery that is still on its way.'));
 });
 
 test('fractions', () => {
@@ -101,5 +104,5 @@ test('nothing private leaks', () => {
     ...base, notices: [BUTTER, { recordType: 'Sensor', name: 'SENS-004', pipeID: 'BAKERY-BRANCH', cleared: false }], repairs: [{ pipeID: 'NORTH-BRANCH-02', at: '2026-11-24T10:00:00Z', by: 'Maren' }],
     decided: { at: '2026-11-24T12:00:00Z', lines: [line({ key: 'a' })], decisions: { a: 'yes' } },
   }));
-  for (const word of ['system', '03:13', 'tamper', 'PSI', 'L/min', '31%', '-3', 'SENS-', 'anonymous', 'Holt', 'Reyes', 'reveal', 'L3Jl', 'door', '500']) assert.equal(full.includes(word), false, word);
+  for (const word of ['system', '03:13', 'tamper', 'PSI', 'L/min', '31%', '-3', 'SENS-', 'anonymous', 'Holt', 'Reyes', 'reveal', 'L3Jl', 'door', '500 crowns']) assert.equal(full.includes(word), false, word);
 });

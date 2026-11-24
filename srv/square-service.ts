@@ -1,6 +1,7 @@
 /** Handler of `SquareService` (see `square-service.cds`): only reads, and passes on finished sentences. */
 import { buildSheet } from './lib/council-sheet';
 import { realToday } from './lib/demo-clock';
+import { simulatedWeather } from './lib/demo-weather';
 import { PEOPLE, stamp } from './lib/ledger-scan';
 import { readDecided, readInput } from './lib/read-council';
 import { readRecords, readTrust } from './lib/read-ledger';
@@ -51,6 +52,7 @@ async function square(): Promise<string> {
   return JSON.stringify(buildSquare({
     now: input.now,
     sheet: buildSheet(input),
+    weather: simulatedWeather(realToday()),
     jobSlots: Object.fromEntries(input.pipes.map((pipe) => [pipe.pipeID, route.get(pipe.ID)?.fields.jobSlot ?? null])),
     // A repair the library is looking at is no news.
     repairs: records.repairs.filter((repair) => repair.repairDate !== null && trust('Repair', repair.ID, repair.repairDate, repair.modifiedAt) === null)
