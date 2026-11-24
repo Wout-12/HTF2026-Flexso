@@ -10,8 +10,8 @@
  */
 import { randomUUID } from 'node:crypto';
 import { startDemoSensorFeed } from './lib/demo-freshness';
-import { applyDemo, isDemoScenario, resetDemo, setDemo } from './lib/demo-overrides';
-import { buildRoute, type RouteInput, type RouteResult } from './lib/water-route';
+import { isDemoScenario, resetDemo, setDemo } from './lib/demo-overrides';
+import { readRoute } from './lib/read-water';
 
 // 👋 EXAMPLE — the shape of a WaterPipes row as our handler sees it. Every field is optional:
 //    the client decides which fields it asks for ($select).
@@ -93,21 +93,6 @@ async function addDaysSinceMaintenance(results: unknown): Promise<void> {
       ? Math.floor((now - Date.parse(lastMaintenance)) / MS_PER_DAY)
       : null;
   }
-}
-
-/** Reads everything the route depends on (one query per entity) and ranks all pipes. */
-async function readRoute(): Promise<Map<string, RouteResult>> {
-  const read = async <T>(entity: string, ...columns: string[]): Promise<T[]> =>
-    (await SELECT.from(`oakhaven.curse.${entity}`).columns(...columns)) as T[];
-  const input: RouteInput = {
-    pipes: await read('WaterPipes', 'ID', 'pipeID', 'pipelineType', 'startPoint', 'endPoint', 'nominalFlowRate', 'currentFlowRate', 'currentPressure'),
-    sensors: await read('Sensors', 'pipe_ID', 'flowRate', 'pressure', 'lastReading'),
-    repairs: await read('Repairs', 'pipe_ID', 'repairDate', 'tierAtRepair'),
-    deferrals: await read('JobDeferrals', 'pipe_ID', 'reason', 'deferredAt', 'tierAtDeferral'),
-    landmarks: await read('Landmarks', 'name', 'suppliedBy', 'servicePriority', 'serviceNote'),
-  };
-  const now = new Date();
-  return buildRoute(applyDemo(input, now), now);
 }
 
 /** Fills in the route fields. The rank compares all pipes, so it is always computed over all. */

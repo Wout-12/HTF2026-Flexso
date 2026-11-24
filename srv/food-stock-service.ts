@@ -7,18 +7,9 @@
  */
 import { randomUUID } from 'node:crypto';
 import { dayOf, isDemo, realToday, setDemoDay, today } from './lib/demo-clock';
-import { addDays, daysBetween, forecast, type Forecast } from './lib/pantry-forecast';
+import { addDays, daysBetween } from './lib/pantry-forecast';
+import { readBoard, readItems, readSuppliers, RISK_ORDER, type Board, type Num, type Row } from './lib/read-pantry';
 
-type Num = number | string | null;
-type Row = Record<string, unknown>;
-
-interface ItemRow {
-  ID: string; name: string; unit: string; currentQuantity: Num; minStockLevel: Num; consumptionRate: Num;
-  marketDayFactor: Num; supplier_ID: string | null; stockAsOf: string | null; countedAt: string | null;
-  modifiedAt: string | null; modifiedBy: string | null;
-}
-interface SupplierRow { ID: string; name: string; leadDays: number; isEstimate: boolean | null }
-interface OrderRow { ID: string; item_ID: string; orderedQuantity: Num; dueOn: string }
 interface StateRow { itemID: string; risk: string; orderState: string }
 
 interface ActionRequest {
@@ -55,71 +46,11 @@ const { SELECT, INSERT, UPDATE, UPSERT } = cds.ql;
 const DB = 'oakhaven.curse';
 const OLD_COUNT_DAYS = 7;
 const MAX_QUANTITY = 100_000;
-/** The edit of 17 Nov that also touched a water sensor and dated a repair in the future. */
-const SUSPICIOUS_EDIT = { by: 'system', at: '2026-11-17T03:13' };
-const RISK_ORDER: Readonly<Record<string, number>> = { panic: 0, dontTrust: 1, belowComfort: 2, orderDue: 3, ok: 4 };
-
-interface Board {
-  readonly item: ItemRow;
-  readonly supplier: SupplierRow | undefined;
-  readonly order: OrderRow | undefined;
-  readonly result: Forecast;
-  readonly rank: number;
-}
-
 const nowAsDateTime = (): string => `${new Date().toISOString().slice(0, 19)}Z`;
 const isValidQuantity = (value: unknown): boolean => {
   const number = Number(value);
   return value !== null && value !== undefined && Number.isFinite(number) && number >= 0 && number <= MAX_QUANTITY;
 };
-
-function isTrusted(item: ItemRow): boolean {
-  if (Number(item.currentQuantity) < 0) return false;
-  const suspicious = item.modifiedBy === SUSPICIOUS_EDIT.by && (item.modifiedAt ?? '').startsWith(SUSPICIOUS_EDIT.at);
-  return item.countedAt !== null || !suspicious;
-}
-
-async function readItems(): Promise<ItemRow[]> {
-  return (await SELECT.from(`${DB}.StockItems`).columns(
-    'ID', 'name', 'unit', 'currentQuantity', 'minStockLevel', 'consumptionRate', 'marketDayFactor',
-    'supplier_ID', 'stockAsOf', 'countedAt', 'modifiedAt', 'modifiedBy',
-  )) as ItemRow[];
-}
-
-async function readSuppliers(): Promise<SupplierRow[]> {
-  return (await SELECT.from(`${DB}.Suppliers`).columns('ID', 'name', 'leadDays', 'isEstimate')) as SupplierRow[];
-}
-
-async function readOpenOrders(): Promise<OrderRow[]> {
-  return (await SELECT.from(`${DB}.PurchaseOrders`).columns('ID', 'item_ID', 'orderedQuantity', 'dueOn').where({ open: true })) as OrderRow[];
-}
-
-/** Forecast of every product, keyed by ID. The rank compares them all. */
-async function readBoard(): Promise<Map<string, Board>> {
-  const [items, suppliers, orders] = [await readItems(), await readSuppliers(), await readOpenOrders()];
-  const rows = items.map((item) => {
-    const supplier = suppliers.find((row) => row.ID === item.supplier_ID);
-    const order = orders.find((row) => row.item_ID === item.ID);
-    const result = forecast({
-      stock: Number(item.currentQuantity),
-      // An old record cannot be rolled forward honestly: it is read as today's stock until counted.
-      stockAsOf: item.stockAsOf ? dayOf(item.stockAsOf) : realToday(),
-      today: today(),
-      usePerDay: Number(item.consumptionRate),
-      marketFactor: Number(item.marketDayFactor ?? 1),
-      leadDays: supplier?.leadDays ?? null,
-      comfort: Number(item.minStockLevel),
-      trusted: isTrusted(item),
-      openOrderDue: order?.dueOn ?? null,
-    });
-    return { item, supplier, order, result };
-  });
-  const gap = (row: (typeof rows)[number]): number => (row.result.arrivalGap ?? 0) / Number(row.item.minStockLevel || 1);
-  rows.sort((a, b) =>
-    RISK_ORDER[a.result.risk] - RISK_ORDER[b.result.risk] || gap(b) - gap(a)
-    || (a.result.daysLeft ?? 0) - (b.result.daysLeft ?? 0) || a.item.name.localeCompare(b.item.name));
-  return new Map(rows.map((row, index) => [row.item.ID, { ...row, rank: index + 1 }]));
-}
 
 async function addForecast(results: unknown): Promise<void> {
   const rows = (Array.isArray(results) ? results : [results]).filter(
