@@ -1,0 +1,117 @@
+<mvc:View
+    controllerName="oakhaven.waterroute.controller.Main"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:c="oakhaven.waterroute.control"
+    core:require="{ DateTime: 'sap/ui/model/type/DateTime' }"
+    displayBlock="true"
+    height="100%">
+    <Page id="page" class="wrPage" busy="{view>/busy}" busyIndicatorDelay="300">
+        <customHeader>
+            <Bar id="header">
+                <contentLeft>
+                    <Title id="title" text="{i18n>appTitle}" level="H1" />
+                    <Text id="now" wrapping="false" text="{path: 'view>/now', type: 'DateTime', formatOptions: {pattern: 'EEE d MMM HH:mm'}}" />
+                </contentLeft>
+                <contentRight>
+                    <Button id="startButton" icon="sap-icon://media-play" tooltip="{i18n>startShift}" type="Emphasized" visible="{= !${view>/started}}" press=".onStartShift" />
+                    <Button id="endButton" icon="sap-icon://stop" tooltip="{i18n>endShift}" visible="{view>/started}" press=".onEndShift" />
+                    <Button id="gloveButton" icon="sap-icon://ti/hand-stop" tooltip="{i18n>gloveMode}" enabled="{= !!${view>/current}}" press=".onGloveOn" />
+                </contentRight>
+            </Bar>
+        </customHeader>
+        <content>
+            <MessageStrip id="lost" text="{i18n>connectionLost}" type="Error" showIcon="true" visible="{view>/lost}" />
+            <VBox id="layout" class="wrLayout" renderType="Bare">
+                <c:VillageMap id="map" src="{view>/mapUrl}" label="{i18n>mapLabel}" pipes="{view>/mapPipes}" places="{view>/mapPlaces}" />
+                <VBox id="side" class="wrSide" renderType="Bare">
+                    <VBox id="jobs" items="{path: 'view>/jobs', templateShareable: false}">
+                        <VBox id="job" class="wrCard">
+                            <customData>
+                                <core:CustomData id="jobTier" key="tier" value="{view>tier}" writeToDom="true" />
+                            </customData>
+                            <HBox id="jobHead" justifyContent="SpaceBetween" alignItems="Start">
+                                <Title id="jobTitle" wrapping="true" class="wrTitle sapUiTinyMarginEnd" text="{view>slot} · {view>name}" level="H2" titleStyle="H3" />
+                                <ObjectStatus id="jobStatus" text="{view>tierText}" state="{view>state}" icon="{view>icon}" inverted="true" />
+                            </HBox>
+                            <Title id="jobAction" text="{view>action}" level="H3" titleStyle="H5" wrapping="true" class="wrAction" />
+                            <Text id="jobReadings" class="wrText" text="{view>readings}" />
+                            <Text id="jobAffects" class="wrText" text="{view>affects}" maxLines="2" />
+                            <ObjectStatus id="jobUpstream" text="{view>upstream}" icon="sap-icon://ti/arrow-up-circle" state="Information" visible="{= !!${view>upstream}}" />
+                            <ObjectStatus id="jobWaiting" text="{view>waiting}" icon="sap-icon://pending" state="Information" visible="{= !!${view>waiting}}" />
+                        </VBox>
+                    </VBox>
+                    <HBox id="actions" renderType="Bare" class="wrActions" visible="{= !!${view>/current}}">
+                        <c:BigButton id="doneButton" text="{i18n>done}" variant="primary" press=".onDone" />
+                        <c:BigButton id="deferButton" text="{i18n>cantToday}" press=".onDefer" />
+                    </HBox>
+                    <VBox id="dayDone" renderType="Bare" visible="{= !!${view>/emptyText}}">
+                        <HBox id="banner" class="wrBanner" renderType="Bare">
+                            <core:Icon id="bannerIcon" src="sap-icon://accept" class="wrBannerIcon" />
+                            <VBox id="bannerTexts" renderType="Bare">
+                                <Title id="bannerTitle" text="{view>/emptyText}" level="H2" wrapping="true" class="wrBannerTitle" />
+                                <Text id="bannerText" text="{view>/emptySubText}" visible="{= !!${view>/emptySubText}}" />
+                            </VBox>
+                        </HBox>
+                        <VBox id="cards" renderType="Bare" items="{path: 'view>/cards', templateShareable: false}">
+                            <VBox id="card" class="wrCard">
+                                <customData>
+                                    <core:CustomData id="cardTier" key="tier" value="{view>tier}" writeToDom="true" />
+                                </customData>
+                                <HBox id="cardHead" justifyContent="SpaceBetween" alignItems="Start">
+                                    <Title id="cardTitle" text="{view>name}" level="H3" titleStyle="H4" wrapping="true" class="wrCardTitle sapUiTinyMarginEnd" />
+                                    <ObjectStatus id="cardStatus" text="{view>badge}" state="{view>state}" icon="{view>icon}" inverted="true" />
+                                </HBox>
+                                <Text id="cardText" text="{view>text}" class="wrText" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+                    <VBox id="notes" visible="{= !!${view>/current}}" class="wrNote wrNotes" items="{path: 'view>/notes', templateShareable: false}">
+                        <ObjectStatus id="note" text="{view>text}" icon="{view>icon}" state="{view>state}" />
+                    </VBox>
+                </VBox>
+            </VBox>
+        </content>
+    </Page>
+    <VBox id="glove" class="wrOverlay" renderType="Bare" visible="{view>/glove}">
+        <c:BigButton id="gloveSurface" variant="glove" text="{view>/gloveText}" confirm="{view>/confirm}" press=".onGlovePress" swipe=".onDefer" />
+        <Button id="gloveOff" text="{i18n>leaveGloveMode}" press=".onGloveOff" />
+    </VBox>
+    <VBox id="alarm" class="wrOverlay" renderType="Bare" visible="{= !!${view>/alarmText}}">
+        <c:BigButton id="alarmSurface" variant="alarm" text="{view>/alarmText}" press=".onAlarmOk" />
+    </VBox>
+    <mvc:dependents>
+        <Dialog id="logDialog" title="{view>/dialog/title}" contentWidth="{= ${view>/glove} ? '100%' : '28rem' }" stretch="{view>/glove}">
+            <content>
+                <VBox id="logContent" class="wrDialog" renderType="Bare">
+                    <VBox id="logOptions" class="wrOptions" renderType="Bare" items="{path: 'view>/dialog/options', templateShareable: false}">
+                        <c:BigButton id="logOption" text="{view>text}" variant="{= ${view>text} === ${view>/dialog/text} ? 'primary' : '' }" press=".onLogOption" />
+                    </VBox>
+                    <Input id="logText" visible="{= !${view>/glove}}" width="100%" value="{view>/dialog/text}" valueLiveUpdate="true" placeholder="{i18n>textPlaceholder}" submit=".onLogSave" />
+                    <HBox id="logActions" class="wrDialogActions" renderType="Bare">
+                        <c:BigButton id="logCancel" text="{i18n>cancel}" press=".onLogCancel" />
+                        <c:BigButton id="logSave" visible="{= !${view>/glove}}" text="{view>/dialog/save}" variant="primary" enabled="{= !!${view>/dialog/text}}" press=".onLogSave" />
+                    </HBox>
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="demoDialog" title="{i18n>demoTitle}">
+            <content>
+                <VBox id="demoContent" class="sapUiSmallMargin">
+                    <Label id="demoPipeLabel" text="{i18n>demoPipe}" labelFor="demoPipe" />
+                    <Select id="demoPipe" width="100%" selectedKey="{view>/demoPipe}" items="{path: 'view>/demoPipes', templateShareable: false}">
+                        <core:Item id="demoPipeItem" key="{view>pipeID}" text="{view>name}" />
+                    </Select>
+                    <Button id="demoAlarm" width="100%" text="{i18n>demoAlarm}" press=".onDemo('alarm')" />
+                    <Button id="demoSilent" width="100%" text="{i18n>demoSilent}" press=".onDemo('silent')" />
+                    <Button id="demoRecovered" width="100%" text="{i18n>demoRecovered}" press=".onDemo('recovered')" />
+                    <Button id="demoReset" width="100%" text="{i18n>demoReset}" press=".onDemo('')" />
+                </VBox>
+            </content>
+            <endButton>
+                <Button id="demoClose" text="{i18n>close}" press=".onDemoClose" />
+            </endButton>
+        </Dialog>
+    </mvc:dependents>
+</mvc:View>

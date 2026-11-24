@@ -1,0 +1,9 @@
+{
+  "name": "oakhaven.waterroute",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Today's Route — where the water crew goes first",
+  "devDependencies": {
+    "ui5-tooling-transpile": "^3.13.1"
+  }
+}

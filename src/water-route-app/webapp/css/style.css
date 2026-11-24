@@ -1,0 +1,90 @@
+.wrMap { width: 100%; background: var(--sapBackgroundColor); }
+.wrMap svg { display: block; width: 100%; max-height: 32vh; margin: 0 auto; }
+.wrPipeCasing { fill: none; stroke: var(--sapBackgroundColor); stroke-linecap: round; stroke-linejoin: round; }
+.wrPipe { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke: var(--sapNeutralColor); }
+.wrPipe-alarm { stroke: var(--sapNegativeColor); }
+.wrPipe-thisWeek { stroke: var(--sapCriticalColor); }
+.wrPipe-unknown { stroke: var(--sapContent_LabelColor); stroke-dasharray: 30 34; }
+.wrDot { fill: var(--sapTextColor); }
+.wrWalk { fill: none; stroke: var(--sapTextColor); stroke-width: 10; stroke-dasharray: 4 26; stroke-linecap: round; }
+.wrPin { fill: var(--sapInformativeColor); stroke: var(--sapTextColor); stroke-width: 10; }
+.wrPulse { fill: none; stroke: var(--sapInformativeColor); stroke-width: 12; }
+.wrMark { fill: var(--sapBackgroundColor); stroke: var(--sapTextColor); stroke-width: 6; }
+.wrPinText { fill: var(--sapContent_ContrastTextColor, #fff); font: bold 84px var(--sapFontFamily); text-anchor: middle; dominant-baseline: central; }
+.wrMarkText { fill: var(--sapTextColor); font: bold 64px var(--sapFontFamily); text-anchor: middle; dominant-baseline: central; }
+.wrPlace { fill: var(--sapTextColor); stroke: var(--sapBackgroundColor); stroke-width: 18; paint-order: stroke; font: bold 68px var(--sapFontFamily); text-anchor: middle; }
+
+.wrCard { margin: 0.375rem 0.5rem 0; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 0.5rem solid var(--sapNeutralColor); background: var(--sapTile_Background); }
+.wrCard[data-tier="alarm"] { border-left-color: var(--sapNegativeColor); }
+.wrCard[data-tier="thisWeek"] { border-left-color: var(--sapCriticalColor); }
+.wrNote { margin: 0.25rem 0.75rem 0; }
+
+.wrBig { box-sizing: border-box; flex: 1; min-height: 4rem; padding: 0.5rem; border: 2px solid var(--sapButton_BorderColor); border-radius: 0.75rem; background: var(--sapButton_Background); color: var(--sapButton_TextColor); font: bold 1.25rem var(--sapFontFamily); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.wrBig:focus-visible { outline: 3px solid var(--sapContent_FocusColor); outline-offset: -5px; }
+.wrBig-primary { background: var(--sapButton_Emphasized_Background); color: var(--sapButton_Emphasized_TextColor); border-color: var(--sapButton_Emphasized_BorderColor); }
+.wrBig-glove, .wrBig-alarm { width: 100%; height: 100%; border-radius: 0; white-space: pre-line; font-size: 2rem; line-height: 1.3; overflow-wrap: anywhere; }
+.wrBig-confirm { background: var(--sapPositiveColor); color: var(--sapBackgroundColor); }
+.wrBig-alarm { background: var(--sapErrorBackground); color: var(--sapTextColor); border: 0.75rem solid var(--sapNegativeColor); animation: wrFlash 1s steps(1) infinite; }
+@keyframes wrFlash { 50% { background: var(--sapNegativeColor); color: var(--sapBackgroundColor); } }
+.wrActions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 8; box-sizing: border-box; padding: 0.5rem; gap: 0.5rem; background: var(--sapPageFooter_Background); }
+.wrOverlay { position: fixed; inset: 0; z-index: 9; background: var(--sapBackgroundColor); }
+@media (prefers-reduced-motion: reduce) { .wrBig-alarm { animation: none; } }
+.wrNotes { padding-bottom: 5.5rem; } /* room for the fixed buttons */
+
+.wrCard[data-tier="ok"] { border-left-color: var(--sapPositiveColor); }
+.wrCard[data-tier="ilse"] { border-left-color: var(--sapInformativeColor); }
+/* End of the day */
+.wrBanner { display: flex; align-items: center; gap: 0.875rem; margin: 0.375rem 0.5rem 0; padding: 0.875rem 1rem; border-radius: 0.5rem; border: 1px solid var(--sapSuccessBorderColor); background: var(--sapSuccessBackground); }
+.wrBannerIcon { flex: none; width: 2.75rem; height: 2.75rem; line-height: 2.75rem; border-radius: 50%; font-size: 1.5rem; text-align: center; color: var(--sapSuccessBackground); background: var(--sapPositiveColor); }
+.wrBannerTitle { font-size: 1.25rem; }
+
+/* Phone: everything below each other, buttons fixed at the bottom. */
+.wrLayout, .wrSide { display: block; }
+
+/* Portrait tablet: same order, bigger map. */
+@media (min-width: 600px) and (min-height: 700px) {
+    .wrMap svg { max-height: 48vh; }
+    .wrMarker { transform: scale(0.75); }
+}
+
+/* Computer: map and jobs side by side, as one centred block; buttons right below the jobs. */
+@media (min-width: 900px) {
+    .wrLayout {
+        --wrMapWidth: min(58vw, (100vh - 8.5rem) * 4 / 3);
+        display: grid;
+        grid-template-columns: var(--wrMapWidth) minmax(20rem, 42rem);
+        justify-content: center;
+        align-items: start;
+        gap: 1.5rem;
+        padding: 1rem 1.5rem;
+    }
+    .wrMap svg { max-height: none; border-radius: 0.75rem; }
+    .wrMarker { transform: scale(0.6); }
+    .wrCard { margin: 0 0 1rem; padding: 1.25rem 1.5rem; border-radius: 0.75rem; }
+    .wrTitle { font-size: clamp(1.25rem, 2vw, 2.25rem); }
+    .wrAction { margin-top: 0.375rem; font-size: clamp(1.125rem, 1.4vw, 1.625rem); }
+    .wrText { margin-top: 0.375rem; font-size: clamp(1rem, 1.2vw, 1.375rem); line-height: 1.4; }
+    .wrActions { position: static; padding: 0 0 1rem; background: transparent; }
+    .wrBanner { margin: 0 0 1rem; padding: 1.25rem 1.5rem; border-radius: 0.75rem; }
+    .wrBannerTitle, .wrCardTitle { font-size: clamp(1.25rem, 1.6vw, 1.75rem); }
+    .wrBig { min-height: 4.5rem; }
+    .wrNote { margin: 0.5rem 0 0; }
+    .wrNotes { padding-bottom: 0; }
+    .wrBig-glove, .wrBig-alarm { font-size: 3.5rem; }
+}
+
+.wrDialog, .wrOptions { display: flex; flex-direction: column; gap: 0.75rem; }
+.wrDialog { padding: 1rem; }
+.wrDialogActions { display: flex; gap: 0.75rem; }
+.wrOptions .wrBig { flex: none; }
+.wrBig:disabled { opacity: 0.4; cursor: default; }
+/* Glove mode: the dialog fills the screen, the choices share it. */
+.sapMDialogStretched .wrDialog { box-sizing: border-box; height: 100%; min-height: calc(93vh - 4rem); }
+.sapMDialogStretched .wrOptions { flex: 1; }
+.sapMDialogStretched .wrOptions .wrBig { flex: 1; min-height: 5.5rem; font-size: 1.75rem; }
+@media (min-width: 600px) {
+    .sapMDialogStretched .wrOptions { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 1rem; }
+    .sapMDialogStretched .wrOptions .wrBig { font-size: clamp(1.75rem, 3vw, 3.5rem); }
+    .sapMDialogStretched .wrOptions .wrBig:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    .sapMDialogStretched .wrDialogActions .wrBig { min-height: 6rem; font-size: 1.75rem; }
+}
