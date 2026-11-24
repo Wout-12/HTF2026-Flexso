@@ -108,6 +108,13 @@ entity StockItems : cuid, managed {
   currentQuantity : Decimal(9, 2);   // in `unit`
   minStockLevel   : Decimal(9, 2);   // in `unit` — the level the village wants to stay above
   consumptionRate : Decimal(9, 2);   // `unit` per day the village uses up
+  supplier        : Association to Suppliers; // empty = never ordered (bread is baked)
+  /** How many times the normal use on market Saturdays. */
+  marketDayFactor : Decimal(4, 2) default 1;
+  /** When `currentQuantity` was last true by a count or a delivery. Empty: only the old record. */
+  stockAsOf       : DateTime;
+  /** When somebody last counted it. Empty: nobody since the Desync. */
+  countedAt       : DateTime;
   receivals       : Composition of many StockReceivals on receivals.item = $self;
 }
 
@@ -117,13 +124,53 @@ entity StockReceivals : cuid, managed {
   quantityReceived : Decimal(9, 2); // in the item's `unit`
   supplier         : String;
   receivedAt       : DateTime;
+  /** The rows of one cart share this ID. */
+  deliveryID       : UUID;
 }
 
-/** A message about a stock item. (No rows yet.) */
+/** Who delivers to the pantry, and how long that takes. */
+entity Suppliers : cuid, managed {
+  name       : String;
+  leadDays   : Integer;
+  isEstimate : Boolean default false; // no fixed days known: dates are an estimate
+}
+
+/** An order Tobin placed himself; the app never contacts a supplier. */
+entity PurchaseOrders : cuid, managed {
+  item             : Association to StockItems;
+  orderedQuantity  : Decimal(9, 2);
+  receivedQuantity : Decimal(9, 2);
+  orderedAt        : DateTime;
+  dueOn            : Date;
+  open             : Boolean default true;
+}
+
+/** A count. Keeps the number it replaced and who last changed that: evidence, never overwritten. */
+entity StockCounts : cuid, managed {
+  item          : Association to StockItems;
+  oldQuantity   : Decimal(9, 2);
+  counted       : Decimal(9, 2);
+  countedAt     : DateTime;
+  countedBy     : String;
+  oldModifiedAt : Timestamp;
+  oldModifiedBy : String;
+}
+
+/** The last state a message was based on, so only a change leads to a new one. */
+entity StockStates {
+  key itemID     : UUID;
+      risk       : String;
+      orderState : String;
+}
+
+/** A message about a stock item; at most one per item, state and day. */
+@assert.unique.once: [ item, state, day ]
 entity Notifications : cuid, managed {
   item         : Association to StockItems;
   message      : String;
   acknowledged : Boolean default false;
+  state        : String;
+  day          : Date;
 }
 
 // ---------------------------------------------------------------------------
