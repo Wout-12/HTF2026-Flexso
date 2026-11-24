@@ -125,3 +125,18 @@ entity Notifications : cuid, managed {
   message      : String;
   acknowledged : Boolean default false;
 }
+
+// ---------------------------------------------------------------------------
+// Evidence — photos of what people actually saw
+// ---------------------------------------------------------------------------
+
+/** A photo next to any record. Append-only: a retake is a new row. */
+entity Evidence : cuid, managed {
+  recordType : String(40); // WaterPipe, StockReceival, StockCount, …
+  recordId   : UUID;
+  note       : String(200);
+  capturedBy : String(80);
+  capturedAt : DateTime;
+  photo      : LargeBinary @Core.MediaType: 'image/jpeg';
+  thumb      : LargeBinary @Core.MediaType: 'image/jpeg';
+}
