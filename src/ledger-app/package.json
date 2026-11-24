@@ -1,0 +1,9 @@
+{
+  "name": "oakhaven.ledger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Ledger — records that may not be trusted, and why",
+  "devDependencies": {
+    "ui5-tooling-transpile": "^3.13.1"
+  }
+}

@@ -1,0 +1,58 @@
+.lgLedger { display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; max-width: 96rem; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+.lgPanel { display: flex; flex-direction: column; gap: 1rem; min-width: 0; padding: 1.25rem 1.5rem; border-radius: 0.75rem; background: var(--sapTile_Background); }
+.lgMuted { color: var(--sapContent_LabelColor); }
+.lgLines { display: flex; flex-direction: column; gap: 0.5rem; }
+.lgUrgent { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.25rem; border: 1px solid var(--sapErrorBorderColor); border-radius: 0.75rem; background: var(--sapErrorBackground); color: var(--sapNegativeTextColor); }
+.lgUrgentText { flex: 1; font-weight: bold; font-size: 1rem; }
+.lgAnswer { font-size: 1.125rem; }
+
+.lgTimeline svg { display: block; width: 100%; min-width: 40rem; }
+.lgTimeline { overflow-x: auto; }
+.lgAxis { stroke: var(--sapGroup_ContentBorderColor); stroke-width: 1.5; }
+.lgMonth { fill: var(--sapContent_LabelColor); font: 13px var(--sapFontFamily); }
+.lgDot-other { fill: var(--sapNeutralColor); opacity: 0.6; }
+.lgDot-ask { fill: var(--sapCriticalColor); }
+.lgDot-sure { fill: var(--sapNegativeColor); }
+.lgDot-inner { fill: none; stroke: var(--sapTextColor); stroke-width: 2; }
+.lgDot[data-finding] { cursor: pointer; pointer-events: all; }
+.lgDot[data-finding]:hover, .lgDotSelected, .lgDot:focus-visible { stroke: var(--sapTextColor); stroke-width: 3; outline: none; }
+.lgLegend { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+.lgLegendItem { display: flex; align-items: center; gap: 0.375rem; }
+.lgLegendItem::before { content: ""; box-sizing: border-box; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--sapNeutralColor); }
+.lgLegendItem[data-kind="sure"]::before { background: var(--sapNegativeColor); }
+.lgLegendItem[data-kind="ask"]::before { background: var(--sapCriticalColor); }
+.lgLegendItem[data-kind="inner"]::before { background: transparent; border: 2px solid var(--sapTextColor); }
+
+.lgColumns { display: grid; grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr); align-items: start; gap: 1rem; }
+.lgList { display: flex; flex-direction: column; gap: 1.5rem; }
+.lgGroup { display: flex; flex-direction: column; gap: 0.5rem; }
+.lgDetail { position: sticky; top: 1rem; }
+.lgEmpty { align-items: center; padding: 4rem 1.5rem; text-align: center; }
+.lgRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.125rem 0.75rem; width: 100%; box-sizing: border-box; padding: 0.625rem 0.875rem; text-align: left; border: 1px solid transparent; border-left: 0.375rem solid var(--sapCriticalColor); border-radius: 0.5rem; background: var(--sapTile_Background); color: var(--sapTextColor); font: 0.9375rem var(--sapFontFamily); cursor: pointer; }
+.lgLevel-sure { border-left-color: var(--sapNegativeColor); }
+.lgRow:focus-visible { outline: 2px solid var(--sapContent_FocusColor); outline-offset: 2px; }
+@media (hover: hover) { .lgRow:hover { background: var(--sapTile_Hover_Background); } }
+.lgRowSelected { background: var(--sapList_SelectionBackgroundColor); }
+.lgRowName { font-weight: bold; }
+.lgRowValue { grid-row: 2; color: var(--sapContent_LabelColor); }
+.lgRowStatus { display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: bold; white-space: nowrap; }
+.lgState-Warning { color: var(--sapCriticalTextColor); }
+.lgState-Error { color: var(--sapNegativeTextColor); }
+.lgState-Information { color: var(--sapInformativeTextColor); }
+.lgState-Success { color: var(--sapPositiveTextColor); }
+.lgTags, .lgActions { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.lgActions { gap: 0.5rem; padding: 0.75rem 0; border-top: 1px solid var(--sapGroup_ContentBorderColor); border-bottom: 1px solid var(--sapGroup_ContentBorderColor); }
+.lgSides { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.75rem; }
+.lgSide { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem 1rem; border-radius: 0.5rem; background: var(--sapBackgroundColor); }
+.lgWhy { padding-left: 0.875rem; border-left: 2px solid var(--sapGroup_ContentBorderColor); font-size: 1rem; line-height: 1.45; }
+.lgSmall { padding-top: 0.25rem; }
+.lgBack { display: none; align-self: flex-start; }
+@media (max-width: 899px) {
+    .lgLedger { padding: 0.75rem; }
+    .lgPanel { padding: 1rem; }
+    .lgCounts { display: none; }
+    .lgColumns { grid-template-columns: 1fr; }
+    .lgDetail { position: static; }
+    .lgColumns[data-open="yes"] .lgList, .lgEmpty { display: none; }
+    .lgBack { display: inline-block; }
+}

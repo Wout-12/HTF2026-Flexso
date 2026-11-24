@@ -1,0 +1,160 @@
+<mvc:View
+    controllerName="oakhaven.ledger.controller.Main"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:c="oakhaven.ledger.control"
+    displayBlock="true"
+    height="100%">
+    <Page id="page" busy="{view>/busy}" busyIndicatorDelay="300">
+        <customHeader>
+            <Bar id="header">
+                <contentLeft>
+                    <Title id="title" text="{i18n>appTitle}" level="H1" />
+                    <Text id="counts" class="lgMuted lgCounts" wrapping="false" text="{view>/counts}" />
+                </contentLeft>
+                <contentRight>
+                    <Button id="open" type="Emphasized" icon="sap-icon://ti/book-2" text="{i18n>openLedger}" visible="{= !${view>/opened} }" press=".onOpenLedger" />
+                </contentRight>
+            </Bar>
+        </customHeader>
+        <content>
+            <MessageStrip id="lost" text="{i18n>connectionLost}" type="Error" showIcon="true" visible="{view>/lost}" />
+            <VBox id="ledger" class="lgLedger" renderType="Bare">
+                <HBox id="urgent" class="lgUrgent" renderType="Bare" visible="{= !!${view>/urgent} }">
+                    <core:Icon id="urgentIcon" src="sap-icon://alert" />
+                    <Text id="urgentText" class="lgUrgentText" text="{view>/urgent}" />
+                    <Button id="urgentShow" text="{i18n>urgentShow}" press=".onUrgent" />
+                </HBox>
+                <VBox id="timelineBox" class="lgPanel" renderType="Bare">
+                    <HBox id="timelineHead" justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap">
+                        <Title id="timelineTitle" text="{i18n>timelineTitle}" level="H2" titleStyle="H4" />
+                        <HBox id="legend" class="lgLegend" renderType="Bare" items="{path: 'view>/legend', templateShareable: false}">
+                            <HBox id="legendItem" class="lgLegendItem" renderType="Bare" alignItems="Center">
+                                <customData>
+                                    <core:CustomData id="legendKind" key="kind" value="{view>kind}" writeToDom="true" />
+                                </customData>
+                                <Text id="legendText" text="{view>text}" />
+                            </HBox>
+                        </HBox>
+                    </HBox>
+                    <Title id="answer" class="lgAnswer" text="{view>/answer}" level="H3" titleStyle="H5" wrapping="true" />
+                    <c:Timeline id="timeline" dots="{view>/dots}" label="{i18n>timelineLabel}" selected="{view>/selectedId}" select=".onTimeline" />
+                    <VBox id="answers" class="lgLines" renderType="Bare" items="{path: 'view>/answers', templateShareable: false}">
+                        <Text id="answerLine" class="lgMuted" text="{view>text}" />
+                    </VBox>
+                </VBox>
+                <HBox id="columns" class="lgColumns" renderType="Bare">
+                    <customData>
+                        <core:CustomData id="columnsOpen" key="open" value="{= ${view>/card} ? 'yes' : 'no' }" writeToDom="true" />
+                    </customData>
+                    <VBox id="list" class="lgList" renderType="Bare" items="{path: 'view>/groups', templateShareable: false}">
+                        <VBox id="group" class="lgGroup" renderType="Bare">
+                            <Title id="groupTitle" text="{view>title}" level="H2" titleStyle="H5" wrapping="true" />
+                            <Text id="groupText" class="lgMuted" text="{view>text}" visible="{= !!${view>text} }" />
+                            <VBox id="rows" class="lgLines" renderType="Bare" items="{path: 'view>items', templateShareable: false}">
+                                <c:CardRow id="row" name="{view>name}" value="{view>value}" status="{view>status}" state="{view>state}" icon="{view>icon}" level="{view>level}" selected="{= ${view>id} === ${view>/selectedId} }" press=".onRow" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+                    <VBox id="detail" class="lgDetail" renderType="Bare">
+                        <VBox id="empty" class="lgPanel lgEmpty" renderType="Bare" visible="{= !${view>/card} }">
+                            <core:Icon id="emptyIcon" src="sap-icon://ti/book-2" size="3rem" />
+                            <Title id="emptyTitle" text="{i18n>choose}" level="H2" titleStyle="H4" />
+                            <Text id="emptyText" class="lgMuted" text="{i18n>chooseText}" />
+                        </VBox>
+                        <VBox id="card" class="lgPanel" renderType="Bare" visible="{= !!${view>/card} }">
+                            <Button id="back" class="lgBack" icon="sap-icon://nav-back" type="Transparent" text="{i18n>back}" press=".onBack" />
+                            <HBox id="cardHead" justifyContent="SpaceBetween" alignItems="Start" wrap="Wrap">
+                                <Title id="cardName" class="sapUiSmallMarginEnd" text="{view>/card/name}" level="H2" titleStyle="H3" wrapping="true" />
+                                <ObjectStatus id="cardStatus" text="{view>/card/status}" state="{view>/card/state}" icon="{view>/card/icon}" inverted="true" />
+                            </HBox>
+                            <HBox id="cardTags" class="lgTags" renderType="Bare" items="{path: 'view>/card/reasons', templateShareable: false}">
+                                <ObjectStatus id="tag" text="{view>text}" state="{view>state}" icon="sap-icon://ti/flag" />
+                            </HBox>
+                            <HBox id="sides" class="lgSides" renderType="Bare" items="{path: 'view>/card/sides', templateShareable: false}">
+                                <VBox id="side" class="lgSide" renderType="Bare">
+                                    <Text id="sideLabel" class="lgMuted" text="{view>label}" />
+                                    <Title id="sideValue" text="{view>value}" level="H3" titleStyle="H2" wrapping="true" />
+                                </VBox>
+                            </HBox>
+                            <Title id="whyTitle" text="{i18n>why}" level="H3" titleStyle="H5" />
+                            <VBox id="why" class="lgLines lgWhy" renderType="Bare" items="{path: 'view>/card/why', templateShareable: false}">
+                                <Text id="whyLine" text="{view>text}" />
+                            </VBox>
+                            <VBox id="history" renderType="Bare" class="lgLines" visible="{= ${view>/card/history}.length > 0 }">
+                                <Title id="historyTitle" text="{i18n>history}" level="H3" titleStyle="H5" />
+                                <VBox id="historyRows" class="lgLines" renderType="Bare" items="{path: 'view>/card/history', templateShareable: false}">
+                                    <HBox id="historyRow" class="lgSides" renderType="Bare">
+                                        <VBox id="before" class="lgSide" renderType="Bare">
+                                            <Text id="beforeLabel" class="lgMuted" text="{i18n>historyBefore}" />
+                                            <Title id="beforeValue" text="{view>before}" level="H4" titleStyle="H3" />
+                                            <Text id="beforeBy" class="lgMuted" text="{view>beforeBy}" />
+                                        </VBox>
+                                        <VBox id="after" class="lgSide" renderType="Bare">
+                                            <Text id="afterLabel" class="lgMuted" text="{i18n>historyNow}" />
+                                            <Title id="afterValue" text="{view>now}" level="H4" titleStyle="H3" />
+                                            <Text id="afterBy" class="lgMuted" text="{view>nowBy}" />
+                                        </VBox>
+                                        <VBox id="reason" class="lgSide" renderType="Bare">
+                                            <Text id="reasonLabel" class="lgMuted" text="{i18n>historyWhy}" />
+                                            <Title id="reasonValue" text="{view>why}" level="H4" titleStyle="H5" wrapping="true" />
+                                        </VBox>
+                                    </HBox>
+                                </VBox>
+                            </VBox>
+                            <VBox id="mightBox" renderType="Bare" visible="{= !!${view>/card/might} }">
+                                <Title id="mightTitle" text="{i18n>might}" level="H3" titleStyle="H5" />
+                                <Text id="might" text="{view>/card/might}" />
+                            </VBox>
+                            <VBox id="factsBox" class="lgLines" renderType="Bare">
+                                <ObjectStatus id="record" text="{view>/card/record}" state="{view>/card/recordState}" icon="sap-icon://ti/file-text" />
+                                <ObjectStatus id="seen" text="{view>/card/seen}" icon="sap-icon://ti/users" />
+                                <ObjectStatus id="council" text="{view>/card/council}" icon="sap-icon://ti/clipboard-list" />
+                                <Text id="note" text="{view>/card/note}" visible="{= !!${view>/card/note} }" />
+                                <Text id="answerText" text="{view>/card/answer}" visible="{= !!${view>/card/answer} }" />
+                            </VBox>
+                            <HBox id="actions" class="lgActions" renderType="Bare">
+                                <Button id="doRead" type="Emphasized" icon="sap-icon://ti/eye" text="{i18n>doRead}" visible="{= ${view>/card/review} === 'New' }" press=".onAct('markRead')" />
+                                <Button id="doNotTrusted" type="Reject" icon="sap-icon://ti/rubber-stamp" text="{i18n>doNotTrusted}" visible="{= ${view>/card/review} === 'Read' || ${view>/card/review} === 'Cleared' }" press=".onAct('markNotTrusted')" />
+                                <Button id="doClear" icon="sap-icon://accept" text="{i18n>doClear}" visible="{= ${view>/card/review} === 'Read' || ${view>/card/review} === 'NotTrusted' }" press=".onAct('clearFinding')" />
+                                <Button id="doReopen" icon="sap-icon://undo" text="{i18n>doReopen}" visible="{= ${view>/card/review} === 'Cleared' || ${view>/card/review} === 'NotTrusted' }" press=".onAct('reopen')" />
+                                <Button id="doBring" icon="sap-icon://ti/clipboard-list" text="{i18n>doBring}" visible="{= ${view>/card/review} !== 'New' &amp;&amp; ${view>/card/councilStatus} === 'NotBrought' }" press=".onAct('bringToCouncil')" />
+                                <Button id="doAnswer" icon="sap-icon://ti/message" text="{i18n>doAnswer}" visible="{= ${view>/card/councilStatus} === 'Brought' }" press=".onAct('recordAnswer')" />
+                            </HBox>
+                            <VBox id="steps" class="lgLines" renderType="Bare" visible="{= ${view>/card/steps}.length > 0 }">
+                                <Title id="stepsTitle" text="{i18n>steps}" level="H3" titleStyle="H5" />
+                                <VBox id="stepRows" class="lgLines" renderType="Bare" items="{path: 'view>/card/steps', templateShareable: false}">
+                                    <Text id="step" text="{view>text}" />
+                                </VBox>
+                            </VBox>
+                            <VBox id="small" class="lgLines lgSmall" renderType="Bare">
+                                <Text id="wrote" class="lgMuted" text="{view>/card/wrote}" />
+                                <VBox id="sideNotes" class="lgLines" renderType="Bare" items="{path: 'view>/card/sideNotes', templateShareable: false}">
+                                    <Text id="sideNote" class="lgMuted" text="{view>text}" />
+                                </VBox>
+                                <Text id="cantSee" class="lgMuted" text="{i18n>cantSee}: {i18n>cantSeePlain}" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </content>
+    </Page>
+    <mvc:dependents>
+        <Dialog id="reasonDialog" title="{view>/reason/title}" contentWidth="32rem">
+            <content>
+                <VBox id="reasonBox" class="sapUiSmallMargin">
+                    <Label id="reasonQuestion" text="{view>/reason/question}" labelFor="reasonText" wrapping="true" />
+                    <TextArea id="reasonText" width="100%" rows="3" maxLength="300" value="{view>/reason/text}" valueLiveUpdate="true" />
+                </VBox>
+            </content>
+            <beginButton>
+                <Button id="reasonSave" type="Emphasized" text="{i18n>save}" enabled="{= !!${view>/reason/text} }" press=".onReasonSave" />
+            </beginButton>
+            <endButton>
+                <Button id="reasonCancel" text="{i18n>cancel}" press=".onReasonCancel" />
+            </endButton>
+        </Dialog>
+    </mvc:dependents>
+</mvc:View>
