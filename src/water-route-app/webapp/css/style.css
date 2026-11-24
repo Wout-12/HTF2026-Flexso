@@ -123,3 +123,6 @@
 .wrWater { fill: #5ba7cf; }
 .wrArt .wrSmoke { fill: #d8d4cb; stroke: none; opacity: 0.8; }
 .wrArt .wrCross { fill: none; stroke: #ead9b5; }
+
+/* Leaving glove mode: big enough for a wet glove, with a gap so it is not hit by accident. */
+.wrGloveOff.wrBig { flex: none; width: auto; min-height: 7rem; margin: 0.75rem; font-size: 1.75rem; }

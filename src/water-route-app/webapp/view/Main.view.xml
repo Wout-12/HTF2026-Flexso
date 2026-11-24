@@ -110,7 +110,7 @@
     </Page>
     <VBox id="glove" class="wrOverlay" renderType="Bare" visible="{view>/glove}">
         <c:BigButton id="gloveSurface" variant="glove" text="{view>/gloveText}" confirm="{view>/confirm}" press=".onGlovePress" swipe=".onDefer" />
-        <Button id="gloveOff" text="{i18n>leaveGloveMode}" press=".onGloveOff" />
+        <c:BigButton id="gloveOff" class="wrGloveOff" text="{i18n>leaveGloveMode}" press=".onGloveOff" />
     </VBox>
     <VBox id="alarm" class="wrOverlay" renderType="Bare" visible="{= !!${view>/alarmText}}">
         <c:BigButton id="alarmSurface" variant="alarm" text="{view>/alarmText}" press=".onAlarmOk" />
