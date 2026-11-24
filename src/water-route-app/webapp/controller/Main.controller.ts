@@ -108,6 +108,7 @@ export default class Main extends Controller {
       alarmText: "",
       emptyText: "",
       emptySubText: "",
+      workingText: "",
       cards: [],
       current: null,
       jobs: [],
@@ -222,6 +223,8 @@ export default class Main extends Controller {
     })));
     const anyFlagged = this.pipes.some((pipe) => pipe.tier !== "ok");
     this.viewModel.setProperty("/emptyText", current ? "" : this.text(anyFlagged ? "allDone" : "nothingToDo"));
+    const working = this.pipes.filter((pipe) => pipe.repairedToday && pipe.tier === "ok").map((pipe) => displayName(pipe.pipeID));
+    this.viewModel.setProperty("/workingText", working.length > 0 ? this.text("workingAgain", working.join(", ")) : "");
     const jobsDone = this.pipes.filter((pipe) => pipe.repairedToday).length;
     this.viewModel.setProperty("/emptySubText", jobsDone > 0 ? this.text("jobsLogged", jobsDone) : "");
     this.viewModel.setProperty("/cards", this.cards());
@@ -308,12 +311,12 @@ export default class Main extends Controller {
   /** What is left to know once there are no more jobs, in the same style as the jobs. */
   private cards(): { id: string; tier: string; name: string; badge: string; state: string; icon: string; text: string }[] {
     const cards = this.pipes
-      .filter((pipe) => pipe.tier !== "ok" || pipe.repairedToday)
+      .filter((pipe) => pipe.tier !== "ok") // repaired and fine again: one line in the banner
       .map((pipe) => {
         const { state, icon, text: badge } = TIERS[pipe.tier];
         let text = this.text(pipe.isBackup ? "actionBackup" : "laterDay");
         if (pipe.repairedToday) {
-          text = this.text(pipe.tier === "ok" ? "repairedOk" : pipe.tier === "unknown" ? "repairedUnknown" : "repairedStill");
+          text = this.text(pipe.tier === "unknown" ? "repairedUnknown" : "repairedStill");
         } else if (pipe.deferredToday) {
           text = this.text("deferred");
         }
@@ -603,7 +606,9 @@ export default class Main extends Controller {
   // ---- photos ----------------------------------------------------------------------------
 
   public onPhotos(event: Event): void {
-    const id = (event.getSource() as Control).getBindingContext("view")?.getProperty("id") as string;
+    // A card knows its pipe; the panel on the map shows the selected one.
+    const card = (event.getSource() as Control).getBindingContext("view");
+    const id = (card ? card.getProperty("id") : this.viewModel.getProperty("/selectedId")) as string;
     this.photoPipe = this.pipes.find((pipe) => pipe.ID === id);
     if (!this.photoPipe) return;
     this.viewModel.setProperty("/photo", { title: this.text("photosOf", displayName(this.photoPipe.pipeID)), busy: false, items: [] });
