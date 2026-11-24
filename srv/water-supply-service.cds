@@ -51,6 +51,6 @@ service WaterSupplyService @(path: 'water-supply', impl: 'srv/water-supply-servi
   entity JobDeferrals as projection on db.JobDeferrals;
 
   // Demo only: pretend a pipe's readings change. Kept in memory, never written to the database.
-  action demoSet(pipeID : String, scenario : String enum { alarm; silent; recovered; });
+  action demoSet(pipeID : String, scenario : String enum { alarm; silent; recovered; repairFails; });
   action demoReset();
 }

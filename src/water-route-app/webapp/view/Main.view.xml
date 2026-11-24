@@ -106,6 +106,7 @@
                     <Button id="demoAlarm" width="100%" text="{i18n>demoAlarm}" press=".onDemo('alarm')" />
                     <Button id="demoSilent" width="100%" text="{i18n>demoSilent}" press=".onDemo('silent')" />
                     <Button id="demoRecovered" width="100%" text="{i18n>demoRecovered}" press=".onDemo('recovered')" />
+                    <Button id="demoRepairFails" width="100%" text="{i18n>demoRepairFails}" press=".onDemo('repairFails')" />
                     <Button id="demoReset" width="100%" text="{i18n>demoReset}" press=".onDemo('')" />
                 </VBox>
             </content>
