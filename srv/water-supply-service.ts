@@ -8,7 +8,10 @@
  * `@sap/cds` ships no TypeScript declarations in this project, so it is loaded with `require`
  * and the part of its API this file uses is described in the small interfaces below.
  */
+import { randomUUID } from 'node:crypto';
 import { startDemoSensorFeed } from './lib/demo-freshness';
+import { applyDemo, isDemoScenario, resetDemo, setDemo } from './lib/demo-overrides';
+import { buildRoute, type RouteInput, type RouteResult } from './lib/water-route';
 
 // 👋 EXAMPLE — the shape of a WaterPipes row as our handler sees it. Every field is optional:
 //    the client decides which fields it asks for ($select).
@@ -18,10 +21,19 @@ interface PipeRow {
   daysSinceMaintenance?: number | null;
 }
 
+/** What an action handler gets from CAP. */
+interface ActionRequest {
+  readonly data: Readonly<Record<string, string | null | undefined>>;
+  readonly subject: unknown;
+  error(code: number, message: string, target?: string): void;
+}
+
 /** The slice of a CAP service this file uses. */
 interface CdsService {
   init(): Promise<void>;
   after(event: string, entity: string, handler: (results: unknown) => unknown): void;
+  on(event: string, handler: (req: ActionRequest) => unknown): void;
+  on(event: string, entity: string, handler: (req: ActionRequest) => unknown): void;
 }
 
 /** The slice of the `cds` facade this file uses. */
@@ -32,15 +44,17 @@ interface CdsApi {
       from(entity: string): {
         columns(...columns: readonly string[]): {
           where(predicate: Readonly<Record<string, unknown>>): PromiseLike<PipeRow[]>;
-        };
+        } & PromiseLike<unknown>;
       };
+      readonly one: { from(target: unknown): { columns(...columns: readonly string[]): PromiseLike<{ ID: string } | null> } };
     };
+    readonly INSERT: { into(entity: string): { entries(row: Readonly<Record<string, unknown>>): PromiseLike<unknown> } };
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const cds = require('@sap/cds') as CdsApi;
-const { SELECT } = cds.ql;
+const { SELECT, INSERT } = cds.ql;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -81,10 +95,92 @@ async function addDaysSinceMaintenance(results: unknown): Promise<void> {
   }
 }
 
+/** Reads everything the route depends on (one query per entity) and ranks all pipes. */
+async function readRoute(): Promise<Map<string, RouteResult>> {
+  const read = async <T>(entity: string, ...columns: string[]): Promise<T[]> =>
+    (await SELECT.from(`oakhaven.curse.${entity}`).columns(...columns)) as T[];
+  const input: RouteInput = {
+    pipes: await read('WaterPipes', 'ID', 'pipeID', 'pipelineType', 'startPoint', 'endPoint', 'nominalFlowRate', 'currentFlowRate', 'currentPressure'),
+    sensors: await read('Sensors', 'pipe_ID', 'flowRate', 'pressure', 'lastReading'),
+    repairs: await read('Repairs', 'pipe_ID', 'repairDate', 'tierAtRepair'),
+    deferrals: await read('JobDeferrals', 'pipe_ID', 'reason', 'deferredAt', 'tierAtDeferral'),
+    landmarks: await read('Landmarks', 'name', 'suppliedBy', 'servicePriority', 'serviceNote'),
+  };
+  const now = new Date();
+  return buildRoute(applyDemo(input, now), now);
+}
+
+/** Fills in the route fields. The rank compares all pipes, so it is always computed over all. */
+async function addRoute(results: unknown): Promise<void> {
+  const rows = (Array.isArray(results) ? results : [results]).filter(
+    (row): row is PipeRow & Record<string, unknown> => row !== null && typeof row === 'object' && 'ID' in row,
+  );
+  if (rows.length === 0) return;
+  const route = await readRoute();
+  for (const row of rows) {
+    const result = route.get(row.ID ?? '');
+    if (!result) continue;
+    Object.assign(row, result.fields);
+    // Show the readings the tier is based on (they differ from the database only during a demo).
+    if ('currentFlowRate' in row) row.currentFlowRate = result.flow;
+    if ('currentPressure' in row) row.currentPressure = result.pressure;
+  }
+}
+
+/** `yyyy-mm-ddThh:mm:ssZ`, as CAP stores a DateTime. */
+function nowAsDateTime(): string {
+  return `${new Date().toISOString().slice(0, 19)}Z`;
+}
+
+async function logRepair(req: ActionRequest): Promise<void> {
+  const issue = req.data.issue?.trim();
+  if (!issue) return req.error(400, 'Say what was wrong with the pipe', 'issue');
+  const pipe = await SELECT.one.from(req.subject).columns('ID');
+  if (!pipe) return req.error(404, 'This pipe does not exist');
+  const tier = (await readRoute()).get(pipe.ID)?.fields.tier;
+  await INSERT.into('oakhaven.curse.Repairs').entries({
+    pipe_ID: pipe.ID,
+    repairID: randomUUID(),
+    issue,
+    repairedBy: req.data.repairedBy?.trim() || 'Maren Holt',
+    repairDate: nowAsDateTime(),
+    tierAtRepair: tier,
+  });
+}
+
+async function deferJob(req: ActionRequest): Promise<void> {
+  const reason = req.data.reason?.trim();
+  if (!reason) return req.error(400, 'Say why it has to wait', 'reason');
+  const pipe = await SELECT.one.from(req.subject).columns('ID');
+  if (!pipe) return req.error(404, 'This pipe does not exist');
+  const tier = (await readRoute()).get(pipe.ID)?.fields.tier;
+  await INSERT.into('oakhaven.curse.JobDeferrals').entries({
+    pipe_ID: pipe.ID,
+    reason,
+    deferredAt: nowAsDateTime(),
+    tierAtDeferral: tier,
+  });
+}
+
+async function demoSet(req: ActionRequest): Promise<void> {
+  const { pipeID, scenario } = req.data;
+  if (!isDemoScenario(scenario)) return req.error(400, 'Unknown demo scenario', 'scenario');
+  const known = await SELECT.from('oakhaven.curse.WaterPipes').columns('ID').where({ pipeID });
+  if (!pipeID || known.length === 0) return req.error(404, 'This pipe does not exist', 'pipeID');
+  setDemo(pipeID, scenario);
+}
+
 export default class WaterSupplyService extends cds.ApplicationService {
   override async init(): Promise<void> {
     // 👋 EXAMPLE — register the handler: after every READ of WaterPipes, add daysSinceMaintenance.
     this.after('READ', 'WaterPipes', addDaysSinceMaintenance);
+
+    // Today's Route (Maren)
+    this.after('READ', 'WaterPipes', addRoute);
+    this.on('logRepair', 'WaterPipes', logRepair);
+    this.on('deferJob', 'WaterPipes', deferJob);
+    this.on('demoSet', demoSet);
+    this.on('demoReset', () => resetDemo());
 
     startDemoSensorFeed();
     return super.init();
