@@ -229,3 +229,51 @@ entity CouncilRules : cuid, managed {
   decidedBy : String(80);
   decidedAt : DateTime;
 }
+
+// ---------------------------------------------------------------------------
+// The Ledger — Ilse's list of records that may not be trusted
+// ---------------------------------------------------------------------------
+
+/** One finding per record version: a later correction is a new version. The evidence is frozen. */
+@assert.unique.version: [ recordType, recordId, field, observedVersion ]
+entity Findings : cuid, managed {
+  recordType      : String(20); // WaterPipe, Sensor, Repair, StockItem, Landmark
+  recordId        : UUID;
+  field           : String(40);
+  observedValue   : String(60);
+  observedVersion : Timestamp;  // `modifiedAt` of the record when it was found
+  reasons         : String(200); // comma separated codes, see srv/lib/ledger-scan.ts
+  level           : String(4) enum { sure; ask; };
+  groupKey        : String(60);
+  evidenceJson    : LargeString;
+  reviewStatus    : String(10) enum { New; Read; NotTrusted; Cleared; } default 'New';
+  reviewNote      : String(300);
+  reviewedAt      : DateTime;
+  councilStatus   : String(10) enum { NotBrought; Brought; Answered; } default 'NotBrought';
+  councilAnswer   : String(300);
+  events          : Composition of many FindingEvents on events.finding = $self;
+}
+
+/** Every move of a finding, so nothing quietly disappears. */
+entity FindingEvents : cuid, managed {
+  finding : Association to Findings;
+  action  : String(20);
+  note    : String(300);
+  who     : String(80);
+  at      : DateTime;
+}
+
+/** Old and new value of every audited write. The app has no way to change or remove a line. */
+entity ChangeLog : cuid {
+  recordType : String(20);
+  recordId   : UUID;
+  field      : String(40);
+  oldValue   : String(60);
+  newValue   : String(60);
+  oldVersion : Timestamp;
+  oldWriter  : String(80);
+  newVersion : Timestamp;
+  changedAt  : Timestamp;
+  changedBy  : String(80);
+  action     : String(40);
+}
