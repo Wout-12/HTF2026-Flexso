@@ -1,0 +1,160 @@
+<mvc:View
+    controllerName="oakhaven.pantry.controller.Main"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:c="oakhaven.pantry.control"
+    core:require="{ DateTime: 'sap/ui/model/type/DateTime' }"
+    displayBlock="true"
+    height="100%">
+    <Page id="page" busy="{view>/busy}" busyIndicatorDelay="300">
+        <customHeader>
+            <Bar id="header">
+                <contentLeft>
+                    <Title id="title" text="{i18n>appTitle}" level="H1" />
+                    <Text id="now" class="pbNow" wrapping="false" text="{path: 'view>/now', type: 'DateTime', formatOptions: {pattern: 'EEE d MMM HH:mm'}}" />
+                </contentLeft>
+                <contentRight>
+                    <Button id="speakButton" icon="sap-icon://sound-loud" tooltip="{i18n>readAloud}" press=".onSpeak" />
+                    <Button id="messagesButton" icon="sap-icon://bell" tooltip="{i18n>messages}" text="{view>/messageCount}" press=".onMessages" />
+                </contentRight>
+            </Bar>
+        </customHeader>
+        <content>
+            <MessageStrip id="lost" text="{i18n>connectionLost}" type="Error" showIcon="true" visible="{view>/lost}" />
+            <MessageStrip id="demo" text="{view>/demoText}" type="Warning" showIcon="true" visible="{= !!${view>/demoText}}" />
+            <HBox id="top" class="pbTop" renderType="Bare">
+                <Text id="briefing" class="pbBriefing" text="{view>/briefing}" />
+                <HBox id="topButtons" class="pbTopButtons" renderType="Bare">
+                    <c:BigButton id="stocktakeButton" text="{i18n>stocktake}" press=".onStocktake" />
+                    <c:BigButton id="dockButton" text="{i18n>dock}" variant="primary" press=".onDock" />
+                </HBox>
+            </HBox>
+            <HBox id="tiles" class="pbTiles" renderType="Bare" items="{path: 'view>/tiles', templateShareable: false}">
+                <c:PantryTile id="tile" icon="{view>icon}" title="{view>name}" risk="{view>risk}" riskText="{view>riskText}" riskIcon="{view>riskIcon}"
+                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}"
+                    press=".onTile" />
+            </HBox>
+        </content>
+    </Page>
+    <mvc:dependents>
+        <Dialog id="detailDialog" title="{view>/detail/name}" contentWidth="46rem">
+            <content>
+                <VBox id="detail" class="pbDialog" renderType="Bare">
+                    <ObjectStatus id="detailRisk" text="{view>/detail/riskText}" icon="{view>/detail/riskIcon}" state="{view>/detail/state}" inverted="true" />
+                    <Title id="whyTitle" text="{i18n>whyTitle}" level="H2" />
+                    <VBox id="why" renderType="Bare" class="pbLines" items="{path: 'view>/detail/why', templateShareable: false}">
+                        <Text id="whyLine" class="pbText" text="{view>text}" />
+                    </VBox>
+                    <Title id="waitTitle" text="{i18n>waitTitle}" level="H2" visible="{= ${view>/detail/wait}.length > 0 }" />
+                    <VBox id="wait" renderType="Bare" class="pbLines" items="{path: 'view>/detail/wait', templateShareable: false}">
+                        <Text id="waitLine" class="pbText" text="{view>text}" />
+                    </VBox>
+                    <Title id="photosTitle" text="{i18n>photosTitle}" level="H2" visible="{= ${view>/photos}.length > 0 }" />
+                    <HBox id="photos" wrap="Wrap" items="{path: 'view>/photos', templateShareable: false}">
+                        <Image id="photo" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" height="7rem" src="{view>thumbUrl}" alt="{view>caption}" tooltip="{view>caption}" decorative="false">
+                            <detailBox>
+                                <LightBox id="photoBox">
+                                    <imageContent>
+                                        <LightBoxItem id="photoItem" imageSrc="{view>url}" title="{view>caption}" />
+                                    </imageContent>
+                                </LightBox>
+                            </detailBox>
+                        </Image>
+                    </HBox>
+                    <HBox id="detailActions" class="pbActions" renderType="Bare">
+                        <c:BigButton id="markButton" text="{view>/detail/markText}" variant="primary" visible="{= !!${view>/detail/markText}}" press=".onMarkOrdered" />
+                        <c:BigButton id="countButton" text="{i18n>countButton}" press=".onCount" />
+                        <c:BigButton id="detailClose" text="{i18n>close}" press=".onCloseDialog" />
+                    </HBox>
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="padDialog" title="{view>/pad/title}" contentWidth="24rem">
+            <content>
+                <VBox id="pad" class="pbDialog" renderType="Bare">
+                    <Title id="padValue" class="pbPadValue" text="{view>/pad/value} {view>/pad/unit}" level="H2" />
+                    <HBox id="padKeys" class="pbPad" renderType="Bare" items="{path: 'view>/pad/keys', templateShareable: false}">
+                        <c:BigButton id="padKey" text="{view>text}" press=".onPadKey" />
+                    </HBox>
+                    <c:BigButton id="padPhoto" text="{view>/pad/photoText}" visible="{view>/pad/withPhoto}" press=".onPadPhoto" />
+                    <HBox id="padActions" class="pbActions" renderType="Bare">
+                        <c:BigButton id="padCancel" text="{i18n>cancel}" press=".onCloseDialog" />
+                        <c:BigButton id="padSave" text="{i18n>save}" variant="primary" enabled="{= ${view>/pad/value} !== ''}" press=".onPadSave" />
+                    </HBox>
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="supplierDialog" title="{i18n>dockTitle}" contentWidth="40rem">
+            <content>
+                <VBox id="supplierContent" class="pbDialog" renderType="Bare">
+                    <HBox id="suppliers" class="pbSuppliers" renderType="Bare" items="{path: 'view>/suppliers', templateShareable: false}">
+                        <c:BigButton id="supplier" text="{view>name}" press=".onSupplier" />
+                    </HBox>
+                    <c:BigButton id="supplierClose" text="{i18n>cancel}" press=".onCloseDialog" />
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="linesDialog" title="{view>/lines/title}" contentWidth="52rem">
+            <content>
+                <VBox id="linesContent" class="pbDialog" renderType="Bare">
+                    <VBox id="dockOptions" renderType="Bare" class="pbLines" visible="{view>/lines/dock}">
+                        <SegmentedButton id="when" width="100%" selectedKey="{view>/lines/when}">
+                            <items>
+                                <SegmentedButtonItem id="whenNow" key="now" text="{i18n>whenNow}" />
+                                <SegmentedButtonItem id="whenMorning" key="morning" text="{i18n>whenMorning}" />
+                                <SegmentedButtonItem id="whenYesterday" key="yesterday" text="{i18n>whenYesterday}" />
+                            </items>
+                        </SegmentedButton>
+                        <c:BigButton id="dockPhoto" text="{view>/lines/photoText}" press=".onDockPhoto" />
+                        <Input id="dockNote" width="100%" maxLength="200" value="{view>/lines/note}" placeholder="{i18n>photoNote}" visible="{view>/lines/hasPhoto}" />
+                    </VBox>
+                    <VBox id="lines" renderType="Bare" items="{path: 'view>/lines/items', templateShareable: false}">
+                        <HBox id="line" class="pbLine" renderType="Bare">
+                            <VBox id="lineName" class="pbLineName" renderType="Bare">
+                                <Title id="lineTitle" text="{view>name}" level="H3" titleStyle="H5" />
+                                <Text id="lineHint" text="{view>hint}" />
+                            </VBox>
+                            <c:BigButton id="lineMinus" text="−" press=".onLineMinus" />
+                            <c:BigButton id="lineValue" text="{view>valueText}" press=".onLineValue" />
+                            <c:BigButton id="linePlus" text="+" press=".onLinePlus" />
+                            <c:BigButton id="lineOk" text="{view>okText}" variant="{= ${view>confirmed} ? 'primary' : '' }" press=".onLineOk" />
+                        </HBox>
+                    </VBox>
+                    <Text id="linesHint" class="pbText" text="{view>/lines/hint}" visible="{= !!${view>/lines/hint}}" />
+                    <HBox id="linesActions" class="pbActions" renderType="Bare">
+                        <c:BigButton id="linesCancel" text="{i18n>cancel}" press=".onCloseDialog" />
+                        <c:BigButton id="linesSave" text="{i18n>save}" variant="primary" enabled="{= !${view>/lines/hint}}" press=".onLinesSave" />
+                    </HBox>
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="messagesDialog" title="{i18n>messages}" contentWidth="36rem">
+            <content>
+                <List id="messages" noDataText="{i18n>noMessages}" items="{path: 'view>/messages', templateShareable: false}">
+                    <CustomListItem id="message">
+                        <HBox id="messageRow" class="pbLine" renderType="Bare">
+                            <Text id="messageText" class="pbLineName pbText" text="{view>message}" />
+                            <c:BigButton id="messageSeen" text="{i18n>gotIt}" press=".onSeen" />
+                        </HBox>
+                    </CustomListItem>
+                </List>
+            </content>
+            <endButton>
+                <Button id="messagesClose" text="{i18n>close}" press=".onCloseDialog" />
+            </endButton>
+        </Dialog>
+        <Dialog id="demoDialog" title="{i18n>demoTitle}">
+            <content>
+                <VBox id="demoContent" class="pbDialog" renderType="Bare">
+                    <Button id="demoNext" width="100%" text="{i18n>demoNext}" press=".onDemo('next')" />
+                    <Button id="demoSaturday" width="100%" text="{i18n>demoSaturday}" press=".onDemo('saturday')" />
+                    <Button id="demoReset" width="100%" text="{i18n>demoReset}" press=".onDemo('')" />
+                </VBox>
+            </content>
+            <endButton>
+                <Button id="demoClose" text="{i18n>close}" press=".onCloseDialog" />
+            </endButton>
+        </Dialog>
+    </mvc:dependents>
+</mvc:View>

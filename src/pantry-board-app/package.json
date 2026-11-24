@@ -1,0 +1,9 @@
+{
+  "name": "oakhaven.pantry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pantry Board — what to order today, and how much",
+  "devDependencies": {
+    "ui5-tooling-transpile": "^3.13.1"
+  }
+}
