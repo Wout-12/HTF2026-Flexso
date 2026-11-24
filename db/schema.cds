@@ -56,6 +56,17 @@ entity Repairs : cuid, managed {
   issue      : String;
   repairDate : DateTime;
   repairedBy : String;
+  /** Tier of the pipe when the repair was logged: a pipe that gets worse afterwards comes back. */
+  tierAtRepair : String;
+}
+
+/** A job the water crew could not do that day ("can't today"), with the reason. */
+entity JobDeferrals : cuid, managed {
+  pipe           : Association to WaterPipes;
+  reason         : String;
+  deferredAt     : DateTime;
+  /** Tier of the pipe when it was deferred: a pipe that gets worse afterwards comes back. */
+  tierAtDeferral : String;
 }
 
 /** Kind of a village landmark. */
@@ -78,6 +89,10 @@ entity Landmarks : cuid, managed {
   gridCell   : String(2);
   /** pipeID of the branch that feeds this area (residential / bakery / farm only). */
   suppliedBy : String;
+  /** Order in which Maren helps the places: 1 = first. Empty: nobody waits for water there. */
+  servicePriority : Integer;
+  /** Who or what depends on the water here, in Maren's words. */
+  serviceNote     : String;
 }
 
 // ---------------------------------------------------------------------------
