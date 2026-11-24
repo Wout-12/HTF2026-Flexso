@@ -84,7 +84,7 @@ export default class Main extends Controller {
 
   public onInit(): void {
     this.viewModel = new JSONModel({
-      now: new Date(), busy: true, lost: false, demoText: "", briefing: "", messageCount: "", tiles: [], messages: [], suppliers: [], photos: [],
+      now: new Date(), busy: true, lost: false, demoText: "", headline: "", reminders: "", messageCount: "", tiles: [], fineTiles: [], messages: [], suppliers: [], photos: [],
       detail: { name: "", riskText: "", riskIcon: "", state: "None", why: [], wait: [], markText: "" },
       pad: { title: "", value: "", unit: "", keys: PAD_KEYS.map((text) => ({ text })), withPhoto: false, photoText: "" },
       lines: { title: "", dock: false, when: "now", items: [], hint: "", photoText: "", hasPhoto: false, note: "" },
@@ -169,7 +169,7 @@ export default class Main extends Controller {
   // ---- board -----------------------------------------------------------------------------
 
   private show(): void {
-    this.viewModel.setProperty("/tiles", this.items.map((item) => ({
+    const toTile = (item: Item): Record<string, unknown> => ({
       id: item.ID,
       icon: item.icon,
       name: item.name,
@@ -177,17 +177,22 @@ export default class Main extends Controller {
       riskText: this.text(RISKS[item.risk].text),
       riskIcon: RISKS[item.risk].icon,
       number: item.daysLeft === null ? "?" : String(Math.floor(Number(item.daysLeft))),
-      unitText: item.daysLeft === null ? this.text("dontTrust") : this.text(Math.floor(Number(item.daysLeft)) === 1 ? "dayLeft" : "daysLeft"),
+      unitText: item.daysLeft === null ? this.text("countIt") : this.text(Math.floor(Number(item.daysLeft)) === 1 ? "dayLeft" : "daysLeft"),
       action: this.actionText(item),
       detail: this.needsOrder(item) ? this.text("arrives", item.supplierName ?? "", this.arrival(item)) : "",
       order: item.orderState === "none" ? "" : this.text(item.orderState === "late" ? "orderLate" : "orderPlaced", day(item.dueOn)),
       market: Number(item.marketDayFactor) > 1 ? this.text("marketHint") : "",
       age: this.ageText(item),
-    })));
+    });
+    this.viewModel.setProperty("/tiles", this.items.filter((item) => this.needsAttention(item)).map(toTile));
+    this.viewModel.setProperty("/fineTiles", this.items.filter((item) => !this.needsAttention(item)).map(toTile));
     const boardDay = this.items[0]?.boardDay ?? "";
     const isDemo = boardDay !== "" && boardDay !== new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels" }).format(new Date());
     this.viewModel.setProperty("/demoText", isDemo ? this.text("demoDay", day(boardDay)) : "");
-    this.viewModel.setProperty("/briefing", this.briefing());
+    const orders = this.ordersToday();
+    this.viewModel.setProperty("/headline", orders.length === 0 ? this.text("headlineNone")
+      : orders.length === 1 ? this.text("headlineOne", orders[0].name.toLowerCase()) : this.text("headlineMany", orders.length));
+    this.viewModel.setProperty("/reminders", this.reminders().join(" "));
   }
 
   private ageText(item: Item): string {
@@ -201,6 +206,15 @@ export default class Main extends Controller {
 
   private needsOrder(item: Item): boolean {
     return item.orderState === "none" && item.orderQuantity !== null && item.orderOn === item.boardDay;
+  }
+
+  private ordersToday(): Item[] {
+    return this.items.filter((item) => this.needsOrder(item) && item.risk !== "dontTrust");
+  }
+
+  /** At risk, late or to be ordered today; the rest can wait in the quiet row. */
+  private needsAttention(item: Item): boolean {
+    return this.needsOrder(item) || item.orderState === "late" || ["panic", "dontTrust", "belowComfort"].includes(item.risk);
   }
 
   /** Half the story for a number nobody trusts: the stock that is used up before the cart arrives. */
@@ -222,12 +236,17 @@ export default class Main extends Controller {
 
   private briefing(): string {
     const parts: string[] = [];
-    const orders = this.items.filter((item) => this.needsOrder(item) && item.risk !== "dontTrust");
+    const orders = this.ordersToday();
     for (const item of orders.slice(0, 2)) {
       parts.push(this.text(item.marketDay ? "briefOrderMarket" : "briefOrder", item.name.toLowerCase(), amount(item.orderQuantity, item.unit), item.supplierName ?? ""));
     }
     if (orders.length > 2) parts.push(this.text("briefMore", orders.length - 2));
     if (orders.length === 0) parts.push(this.text("briefNone"));
+    return [...parts, ...this.reminders()].join(" ");
+  }
+
+  private reminders(): string[] {
+    const parts: string[] = [];
     const untrusted = this.items.filter((item) => item.risk === "dontTrust");
     untrusted.forEach((item) => parts.push(this.text("briefTrust", item.name)));
     this.items.filter((item) => item.orderState === "late").forEach((item) => parts.push(this.text("briefLate", item.name)));
@@ -239,7 +258,7 @@ export default class Main extends Controller {
       .map((item) => item.name.toLowerCase());
     if (old.length > 0) parts.push(this.text("briefCount", old.length === 2 ? this.text("and", old[0], old[1]) : old[0]));
     if (this.items[0] && new Date(`${this.items[0].boardDay}T00:00:00Z`).getUTCDay() === 5) parts.push(this.text("briefMarket"));
-    return parts.join(" ");
+    return parts;
   }
 
   public onSpeak(): void {

@@ -22,6 +22,8 @@ export default class PantryTile extends Control {
       order: { type: "string", defaultValue: "" },
       market: { type: "string", defaultValue: "" },
       age: { type: "string", defaultValue: "" },
+      /** A product with nothing to do: one quiet line. */
+      compact: { type: "boolean", defaultValue: false },
     },
     events: { press: {} },
   };
@@ -39,7 +41,9 @@ export default class PantryTile extends Control {
       const line = (text: string, css: string): void => {
         if (text) rm.openStart("span").class(css).openEnd().text(text).close("span");
       };
-      rm.openStart("button", tile).attr("type", "button").class("pbTile").class(`pbTile-${get("risk")}`).openEnd();
+      rm.openStart("button", tile).attr("type", "button").class("pbTile").class(`pbTile-${get("risk")}`);
+      if (tile.getProperty("compact") as boolean) rm.class("pbTileCompact");
+      rm.openEnd();
       rm.openStart("span").class("pbTileHead").openEnd();
       rm.icon(get("icon"), ["pbTileIcon"], { id: `${tile.getId()}-icon`, title: null });
       line(get("title"), "pbTileTitle");
@@ -51,13 +55,15 @@ export default class PantryTile extends Control {
       rm.close("span");
       rm.openStart("span").class("pbTileNumber").openEnd();
       line(get("number"), "pbTileDays");
+      rm.openStart("span").class("pbTileUnits").openEnd();
       line(get("unit"), "pbTileUnit");
-      rm.close("span");
+      line(get("age"), "pbTileAge");
+      rm.close("span").close("span");
+      rm.openStart("span").class("pbTileFoot").openEnd();
       line(get("action"), "pbTileAction");
       line(get("detail"), "pbTileDetail");
       line(get("order"), "pbTileOrder");
-      line(get("age"), "pbTileAge");
-      rm.close("button");
+      rm.close("span").close("button");
     },
   };
 }

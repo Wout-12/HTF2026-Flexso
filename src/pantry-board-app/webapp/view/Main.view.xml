@@ -24,7 +24,10 @@
             <MessageStrip id="lost" text="{i18n>connectionLost}" type="Error" showIcon="true" visible="{view>/lost}" />
             <MessageStrip id="demo" text="{view>/demoText}" type="Warning" showIcon="true" visible="{= !!${view>/demoText}}" />
             <HBox id="top" class="pbTop" renderType="Bare">
-                <Text id="briefing" class="pbBriefing" text="{view>/briefing}" />
+                <VBox id="briefing" class="pbBriefing" renderType="Bare">
+                    <Title id="headline" class="pbHeadline" text="{view>/headline}" level="H2" wrapping="true" />
+                    <Text id="reminders" class="pbReminders" text="{view>/reminders}" visible="{= !!${view>/reminders}}" />
+                </VBox>
                 <HBox id="topButtons" class="pbTopButtons" renderType="Bare">
                     <c:BigButton id="stocktakeButton" text="{i18n>stocktake}" press=".onStocktake" />
                     <c:BigButton id="dockButton" text="{i18n>dock}" variant="primary" press=".onDock" />
@@ -32,6 +35,12 @@
             </HBox>
             <HBox id="tiles" class="pbTiles" renderType="Bare" items="{path: 'view>/tiles', templateShareable: false}">
                 <c:PantryTile id="tile" icon="{view>icon}" title="{view>name}" risk="{view>risk}" riskText="{view>riskText}" riskIcon="{view>riskIcon}"
+                    number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}"
+                    press=".onTile" />
+            </HBox>
+            <Title id="fineTitle" class="pbSection" text="{i18n>fineTitle}" level="H2" titleStyle="H6" visible="{= ${view>/fineTiles}.length > 0 }" />
+            <HBox id="fineTiles" class="pbTiles pbTilesFine" renderType="Bare" items="{path: 'view>/fineTiles', templateShareable: false}">
+                <c:PantryTile id="fineTile" compact="true" icon="{view>icon}" title="{view>name}" risk="{view>risk}" riskText="{view>riskText}" riskIcon="{view>riskIcon}"
                     number="{view>number}" unit="{view>unitText}" action="{view>action}" detail="{view>detail}" order="{view>order}" market="{view>market}" age="{view>age}"
                     press=".onTile" />
             </HBox>
@@ -62,7 +71,7 @@
                             </detailBox>
                         </Image>
                     </HBox>
-                    <HBox id="detailActions" class="pbActions" renderType="Bare">
+                    <HBox id="detailActions" class="pbActions pbFooter" renderType="Bare">
                         <c:BigButton id="markButton" text="{view>/detail/markText}" variant="primary" visible="{= !!${view>/detail/markText}}" press=".onMarkOrdered" />
                         <c:BigButton id="countButton" text="{i18n>countButton}" press=".onCount" />
                         <c:BigButton id="detailClose" text="{i18n>close}" press=".onCloseDialog" />
@@ -78,7 +87,7 @@
                         <c:BigButton id="padKey" text="{view>text}" press=".onPadKey" />
                     </HBox>
                     <c:BigButton id="padPhoto" text="{view>/pad/photoText}" visible="{view>/pad/withPhoto}" press=".onPadPhoto" />
-                    <HBox id="padActions" class="pbActions" renderType="Bare">
+                    <HBox id="padActions" class="pbActions pbFooter" renderType="Bare">
                         <c:BigButton id="padCancel" text="{i18n>cancel}" press=".onCloseDialog" />
                         <c:BigButton id="padSave" text="{i18n>save}" variant="primary" enabled="{= ${view>/pad/value} !== ''}" press=".onPadSave" />
                     </HBox>
@@ -95,7 +104,7 @@
                 </VBox>
             </content>
         </Dialog>
-        <Dialog id="linesDialog" title="{view>/lines/title}" contentWidth="52rem">
+        <Dialog id="linesDialog" title="{view>/lines/title}" contentWidth="{= ${view>/lines/items}.length > 5 ? '68rem' : '42rem' }">
             <content>
                 <VBox id="linesContent" class="pbDialog" renderType="Bare">
                     <VBox id="dockOptions" renderType="Bare" class="pbLines" visible="{view>/lines/dock}">
@@ -109,7 +118,7 @@
                         <c:BigButton id="dockPhoto" text="{view>/lines/photoText}" press=".onDockPhoto" />
                         <Input id="dockNote" width="100%" maxLength="200" value="{view>/lines/note}" placeholder="{i18n>photoNote}" visible="{view>/lines/hasPhoto}" />
                     </VBox>
-                    <VBox id="lines" renderType="Bare" items="{path: 'view>/lines/items', templateShareable: false}">
+                    <VBox id="lines" class="pbLineList" renderType="Bare" items="{path: 'view>/lines/items', templateShareable: false}">
                         <HBox id="line" class="pbLine" renderType="Bare">
                             <VBox id="lineName" class="pbLineName" renderType="Bare">
                                 <Title id="lineTitle" text="{view>name}" level="H3" titleStyle="H5" />
@@ -121,11 +130,13 @@
                             <c:BigButton id="lineOk" text="{view>okText}" variant="{= ${view>confirmed} ? 'primary' : '' }" press=".onLineOk" />
                         </HBox>
                     </VBox>
-                    <Text id="linesHint" class="pbText" text="{view>/lines/hint}" visible="{= !!${view>/lines/hint}}" />
-                    <HBox id="linesActions" class="pbActions" renderType="Bare">
-                        <c:BigButton id="linesCancel" text="{i18n>cancel}" press=".onCloseDialog" />
-                        <c:BigButton id="linesSave" text="{i18n>save}" variant="primary" enabled="{= !${view>/lines/hint}}" press=".onLinesSave" />
-                    </HBox>
+                    <VBox id="linesFooter" class="pbFooter" renderType="Bare">
+                        <Text id="linesHint" class="pbText" text="{view>/lines/hint}" visible="{= !!${view>/lines/hint}}" />
+                        <HBox id="linesActions" class="pbActions" renderType="Bare">
+                            <c:BigButton id="linesCancel" text="{i18n>cancel}" press=".onCloseDialog" />
+                            <c:BigButton id="linesSave" text="{i18n>save}" variant="primary" enabled="{= !${view>/lines/hint}}" press=".onLinesSave" />
+                        </HBox>
+                    </VBox>
                 </VBox>
             </content>
         </Dialog>
@@ -133,8 +144,8 @@
             <content>
                 <List id="messages" noDataText="{i18n>noMessages}" items="{path: 'view>/messages', templateShareable: false}">
                     <CustomListItem id="message">
-                        <HBox id="messageRow" class="pbLine" renderType="Bare">
-                            <Text id="messageText" class="pbLineName pbText" text="{view>message}" />
+                        <HBox id="messageRow" class="pbMessage" renderType="Bare">
+                            <Text id="messageText" class="pbMessageText pbText" text="{view>message}" />
                             <c:BigButton id="messageSeen" text="{i18n>gotIt}" press=".onSeen" />
                         </HBox>
                     </CustomListItem>
