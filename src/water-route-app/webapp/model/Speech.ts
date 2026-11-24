@@ -9,6 +9,7 @@ interface Recognition {
   continuous: boolean;
   lang: string;
   onresult: ((event: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onstart: (() => void) | null;
   onend: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   start(): void;
@@ -31,14 +32,42 @@ export function parseCommand(heard: string): Command | undefined {
 /** Best voices first: downloaded high-quality ones, then Chrome's, then Apple's standard one. */
 const PREFERRED_VOICES = [/premium/i, /enhanced/i, /natural/i, /^Google US English/i, /^Samantha/i];
 
-function bestVoice(): SpeechSynthesisVoice | undefined {
-  const voices = window.speechSynthesis.getVoices().filter((voice) => /^en[-_]/i.test(voice.lang));
+const englishVoices = (): SpeechSynthesisVoice[] => window.speechSynthesis.getVoices().filter((voice) => /^en[-_]/i.test(voice.lang));
+
+function preferredVoice(): SpeechSynthesisVoice | undefined {
+  const voices = englishVoices();
   for (const pattern of PREFERRED_VOICES) {
     const match = voices.find((voice) => pattern.test(voice.name));
     if (match) return match;
   }
-  return voices.find((voice) => voice.default); // else the browser picks: macOS also lists joke voices
+  return undefined;
 }
+
+function bestVoice(): SpeechSynthesisVoice | undefined {
+  return preferredVoice() ?? englishVoices().find((voice) => voice.default); // else the browser picks: macOS also lists joke voices
+}
+
+const MICROPHONE_WAIT_MS = 600;
+const VOICES_WAIT_MS = 1500;
+let voicesWait: Promise<void> | undefined;
+
+/** The browser loads its voices in the background; speaking earlier gives its worst voice. */
+function voicesReady(): Promise<void> {
+  voicesWait ??= new Promise((resolve) => {
+    const giveUp = window.setTimeout(resolve, VOICES_WAIT_MS);
+    const check = (): void => {
+      if (!preferredVoice()) return;
+      window.clearTimeout(giveUp);
+      window.speechSynthesis.removeEventListener("voiceschanged", check);
+      resolve();
+    };
+    window.speechSynthesis.addEventListener("voiceschanged", check);
+    check();
+  });
+  return voicesWait;
+}
+
+if ("speechSynthesis" in window) void voicesReady(); // start loading with the page
 
 /**
  * Speaks, and listens for commands where the browser can. Never listens while it speaks,
@@ -51,12 +80,13 @@ export default class Speech {
   private enabled = false;
   private speaking = 0;
   private retry?: number;
+  private listening = false;
+  private onReleased?: () => void;
 
   constructor(private readonly onCommand: (command: Command) => void, private readonly onBlocked: () => void) {}
 
   public start(): void {
     this.enabled = true;
-    window.speechSynthesis?.getVoices(); // the list loads in the background
     const scope = window as unknown as Record<string, (new () => Recognition) | undefined>;
     const Api = scope.SpeechRecognition ?? scope.webkitSpeechRecognition;
     if (!Api || this.recognition) return;
@@ -73,11 +103,15 @@ export default class Speech {
       this.onBlocked();
     };
     recognition.onend = (): void => {
+      this.listening = false;
+      this.onReleased?.();
       window.clearTimeout(this.retry);
       this.retry = window.setTimeout(() => this.listen(), 400);
     };
+    recognition.onstart = (): void => { this.listening = true; };
     this.recognition = recognition;
-    this.listen();
+    // Not listening yet: an open microphone makes some headsets switch to call quality.
+    if (this.speaking === 0) this.retry = window.setTimeout(() => this.listen(), 400);
   }
 
   public stop(): void {
@@ -93,9 +127,30 @@ export default class Speech {
   public say(text: string): void {
     if (!this.enabled || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    this.recognition?.abort();
+    const released = this.releaseMicrophone();
     const turn = ++this.utterance;
     this.speaking = turn;
+    void Promise.all([voicesReady(), released]).then(() => {
+      if (this.enabled && this.speaking === turn) this.speak(text, turn);
+    });
+  }
+
+  /** Stops listening; resolves once the microphone is really closed. */
+  private releaseMicrophone(): Promise<void> {
+    window.clearTimeout(this.retry);
+    const wasListening = this.listening;
+    this.recognition?.abort();
+    if (!wasListening) return Promise.resolve();
+    return new Promise((resolve) => {
+      const timeout = window.setTimeout(resolve, MICROPHONE_WAIT_MS);
+      this.onReleased = (): void => {
+        window.clearTimeout(timeout);
+        resolve();
+      };
+    });
+  }
+
+  private speak(text: string, turn: number): void {
     const finished = (): void => {
       if (this.speaking !== turn) return;
       this.speaking = 0;

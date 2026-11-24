@@ -263,7 +263,7 @@ export default class Main extends Controller {
 
   public onSpeak(): void {
     const spoken = this.briefing().replace(/\bkg\b/g, "kilos").replace(/(\d) L\b/g, "$1 litres");
-    speak(`${this.text("briefMorning")} ${spoken}`);
+    void speak(`${this.text("briefMorning")} ${spoken}`);
   }
 
   // ---- detail: why, what if, order, count --------------------------------------------------
