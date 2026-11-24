@@ -1,0 +1,51 @@
+/* Around the paper. */
+.csStage { display: block; padding: 1rem; }
+.csPaper { max-width: 210mm; margin: 0 auto; }
+.csStage .csPage { padding: 10mm 12mm; margin-bottom: 1rem; border-radius: 0.25rem; box-shadow: var(--sapContent_Shadow2); }
+.csStage .csScroll { overflow-x: auto; }
+.csTicks { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
+.csTickLine { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.25rem 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--sapGroup_ContentBorderColor); }
+.csTickName { min-width: 0; }
+.csTickNote { grid-column: 1 / -1; }
+.csTickForm { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 1rem; }
+@media (max-width: 599px) {
+    .csStage { padding: 0.5rem; }
+    .csStage .csPage { padding: 1rem; }
+    .csStage .csPaper { font-size: 1rem; }
+    .csStage .csMoney thead { display: none; }
+    .csStage .csMoney tr { display: grid; grid-template-columns: 1.5rem 1fr 1fr 1fr; padding: 0.5rem 0; border-bottom: 1px solid #000; }
+    .csStage .csMoney td { border: 0; }
+    .csStage .csMoney td:nth-child(2) { grid-column: 2 / -1; }
+    .csStage .csMoney td.csTick { display: flex; align-items: center; gap: 0.375rem; width: auto; text-align: left; }
+    .csStage .csMoney td.csTick:nth-child(3) { grid-column: 2; }
+    .csStage .csMoney td.csTick::after { content: attr(data-label); }
+    .csTickLine { grid-template-columns: 1fr; }
+}
+.csPrintFrame { position: fixed; width: 0; height: 0; border: 0; visibility: hidden; }
+
+/* Now: the overview. A copy: the paper. */
+.csStage[data-shown="no"] { display: none; }
+.csOverview { display: flex; flex-direction: column; gap: 1rem; box-sizing: border-box; max-width: 84rem; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+.csPair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: 1rem; }
+.csCard { display: flex; flex-direction: column; gap: 0.625rem; min-width: 0; padding: 1.125rem 1.25rem; border-radius: 0.75rem; background: var(--sapTile_Background); }
+.csCard[data-state] { border-left: 0.375rem solid var(--sapNeutralColor); }
+.csCard[data-state="Error"] { border-left-color: var(--sapNegativeColor); }
+.csCard[data-state="Warning"] { border-left-color: var(--sapCriticalColor); }
+.csCard[data-state="Success"] { border-left-color: var(--sapPositiveColor); }
+.csMuted { color: var(--sapContent_LabelColor); }
+.csLines { display: flex; flex-direction: column; gap: 0.375rem; }
+.csIfNo { margin-top: auto; padding-top: 0.625rem; border-top: 1px solid var(--sapGroup_ContentBorderColor); color: var(--sapContent_LabelColor); }
+.csHelpRow { padding-top: 0.5rem; border-top: 1px solid var(--sapGroup_ContentBorderColor); }
+.csBar { position: relative; display: flex; height: 2.5rem; border-radius: 0.5rem; background: var(--sapNeutralBackground); }
+.csPart { box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--sapTile_Background); font-weight: bold; color: var(--sapTile_Background); }
+.csPart-pending { background: var(--sapNeutralColor); }
+.csPart-approve { background: var(--sapNegativeColor); }
+.csPart-approveIf { background: var(--sapCriticalColor); }
+.csPart-buffer { background: var(--sapInformativeColor); }
+.csPart-reserve { background: var(--sapPositiveColor); }
+.csLimit { position: absolute; top: -0.375rem; bottom: -0.375rem; border-left: 3px solid var(--sapTextColor); }
+.csLegend { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin-top: 0.75rem; }
+.csDot { display: inline-block; width: 0.75rem; height: 0.75rem; margin-right: 0.375rem; border-radius: 50%; }
+.csLegendLimit { margin-left: auto; padding-left: 0.5rem; border-left: 3px solid var(--sapTextColor); font-weight: bold; }
+.csFour { grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
+@media (max-width: 599px) { .csOverview { padding: 0.75rem; } }

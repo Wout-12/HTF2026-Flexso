@@ -1,0 +1,165 @@
+<mvc:View
+    controllerName="oakhaven.council.controller.Main"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:c="oakhaven.council.control"
+    displayBlock="true"
+    height="100%">
+    <Page id="page" busy="{view>/busy}" busyIndicatorDelay="300">
+        <customHeader>
+            <Bar id="header">
+                <contentLeft>
+                    <Title id="title" text="{i18n>appTitle}" level="H1" />
+                </contentLeft>
+                <contentRight>
+                    <Button id="refresh" icon="sap-icon://refresh" tooltip="{i18n>refresh}" press=".onRefresh" />
+                </contentRight>
+            </Bar>
+        </customHeader>
+        <subHeader>
+            <OverflowToolbar id="tools">
+                <Select id="version" tooltip="{i18n>chooseVersion}" selectedKey="{view>/version}" forceSelection="false" items="{path: 'view>/versions', templateShareable: false}" change=".onVersion">
+                    <core:Item id="versionItem" key="{view>key}" text="{view>text}" />
+                </Select>
+                <ToolbarSpacer id="space" />
+                <Button id="createCopy" type="Emphasized" icon="sap-icon://ti/copy-check" text="{i18n>createCopy}" visible="{= ${view>/version} === 'now' }" press=".onCreateCopy" />
+                <Button id="enterTicks" icon="sap-icon://ti/checkbox" text="{i18n>enterTicks}" visible="{= !!${view>/copy} &amp;&amp; !${view>/copy/decidedAt} }" press=".onEnterTicks" />
+                <Button id="printCopy" type="Emphasized" icon="sap-icon://print" text="{i18n>printCopy}" visible="{= !!${view>/copy} }" press=".onPrint" />
+            </OverflowToolbar>
+        </subHeader>
+        <content>
+            <MessageStrip id="scenario" text="{i18n>scenarioStrip}" type="Warning" showIcon="true" visible="{= ${view>/version} === 'scenario' }" />
+            <MessageStrip id="changed" text="{i18n>changedSince}" type="Information" showIcon="true" visible="{view>/changed}" />
+            <VBox id="overview" class="csOverview" renderType="Bare" visible="{= !!${view>/o} &amp;&amp; !${view>/copy} }">
+                <Text id="meta" class="csMuted" text="{view>/o/meta}" />
+                <HBox id="verdicts" class="csPair" renderType="Bare" items="{path: 'view>/o/verdicts', templateShareable: false}">
+                    <VBox id="verdict" class="csCard" renderType="Bare">
+                        <customData>
+                            <core:CustomData id="verdictState" key="state" value="{view>state}" writeToDom="true" />
+                        </customData>
+                        <HBox id="verdictHead" justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap">
+                            <Title id="verdictName" text="{view>name}" level="H2" titleStyle="H4" />
+                            <Text id="verdictEvidence" class="csMuted" text="{view>evidence}" />
+                        </HBox>
+                        <ObjectStatus id="verdictText" class="csVerdictBig" text="{view>verdict}" icon="{view>icon}" state="{view>state}" inverted="true" />
+                        <VBox id="verdictLines" renderType="Bare" class="csLines" items="{path: 'view>lines', templateShareable: false}">
+                            <Text id="verdictLine" text="{view>text}" />
+                        </VBox>
+                    </VBox>
+                </HBox>
+                <VBox id="money" class="csCard" renderType="Bare">
+                    <HBox id="moneyHead" justifyContent="SpaceBetween" alignItems="Center" wrap="Wrap">
+                        <Title id="moneyTitle" text="{view>/o/moneyTitle}" level="H2" titleStyle="H4" />
+                        <HBox id="moneySum" alignItems="Center">
+                            <Title id="moneyTotal" class="sapUiTinyMarginEnd" text="{view>/o/total}" level="H3" titleStyle="H4" />
+                            <ObjectStatus id="moneyRest" text="{view>/o/rest}" state="{view>/o/restState}" icon="{view>/o/restIcon}" inverted="true" />
+                        </HBox>
+                    </HBox>
+                    <c:BudgetBar id="bar" parts="{view>/o/parts}" weekly="{view>/o/weekly}" weeklyText="{view>/o/weeklyText}" />
+                    <Text id="oneCart" text="{view>/o/oneCart}" visible="{= !!${view>/o/oneCart} }" />
+                    <Text id="options" text="{view>/o/options}" class="csMuted" visible="{= !!${view>/o/options} }" />
+                </VBox>
+                <HBox id="proposals" class="csPair csFour" renderType="Bare" items="{path: 'view>/o/lines', templateShareable: false}">
+                    <VBox id="proposal" class="csCard" renderType="Bare">
+                        <HBox id="proposalHead" justifyContent="SpaceBetween" alignItems="Start">
+                            <Title id="proposalTitle" class="sapUiTinyMarginEnd" text="{view>title}" level="H3" titleStyle="H5" wrapping="true" />
+                            <ObjectStatus id="proposalTick" text="{view>tick}" state="{view>tickState}" icon="{view>tickIcon}" inverted="true" visible="{= !!${view>tick} }" />
+                        </HBox>
+                        <Title id="proposalCrowns" text="{view>crowns}" level="H4" titleStyle="H4" />
+                        <Text id="proposalWhy" text="{view>why}" />
+                        <Text id="proposalNotes" class="csMuted" text="{view>notes}" visible="{= !!${view>notes} }" />
+                        <Text id="proposalNo" class="csIfNo" text="{view>ifNo}" />
+                    </VBox>
+                </HBox>
+                <VBox id="moneyNotes" renderType="Bare" class="csLines" items="{path: 'view>/o/notes', templateShareable: false}">
+                    <Text id="moneyNote" class="csMuted" text="{view>text}" />
+                </VBox>
+                <HBox id="bottom" class="csPair" renderType="Bare">
+                    <VBox id="doubts" class="csCard" renderType="Bare">
+                        <Title id="doubtsTitle" text="{i18n>evidenceDoubt}" level="H2" titleStyle="H5" />
+                        <VBox id="doubtLines" renderType="Bare" class="csLines" items="{path: 'view>/o/doubts', templateShareable: false}">
+                            <Text id="doubtLine" text="{view>text}" />
+                        </VBox>
+                        <Title id="agendaTitle" text="{i18n>agendaShort}" level="H2" titleStyle="H5" />
+                        <Text id="agenda" text="{view>/o/agenda}" />
+                    </VBox>
+                    <VBox id="help" class="csCard" renderType="Bare">
+                        <Title id="helpTitle" text="{i18n>helpShort}" level="H2" titleStyle="H5" />
+                        <VBox id="helpLines" renderType="Bare" class="csLines" items="{path: 'view>/o/help', templateShareable: false}">
+                            <Text id="helpLine" text="{view>text}" />
+                        </VBox>
+                        <VBox id="helpRows" renderType="Bare" class="csLines" items="{path: 'view>/o/helpRows', templateShareable: false}">
+                            <VBox id="helpRow" class="csHelpRow" renderType="Bare">
+                                <Title id="helpName" text="{view>title}" level="H3" titleStyle="H6" />
+                                <Text id="helpDetail" text="{view>detail}" class="csMuted" visible="{= !!${view>detail} }" />
+                                <ObjectStatus id="helpLabel" text="{view>label}" state="{view>state}" icon="sap-icon://ti/chart-arrows" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
+                </HBox>
+            </VBox>
+            <VBox id="stage" class="csStage" renderType="Bare">
+                <customData>
+                    <core:CustomData id="stageShown" key="shown" value="{= ${view>/copy} ? 'yes' : 'no' }" writeToDom="true" />
+                </customData>
+                <c:CouncilPaper id="paper" text="{view>/text}" headings="{view>/headings}" />
+            </VBox>
+        </content>
+    </Page>
+    <mvc:dependents>
+        <Dialog id="ticksDialog" title="{view>/ticks/title}" contentWidth="44rem">
+            <content>
+                <VBox id="ticks" class="csTicks" renderType="Bare">
+                    <VBox id="tickLines" renderType="Bare" class="csTicksList" items="{path: 'view>/ticks/lines', templateShareable: false}">
+                        <VBox id="tickLine" class="csTickLine" renderType="Bare">
+                            <VBox id="tickName" class="csTickName" renderType="Bare">
+                                <Title id="tickTitle" text="{view>title}" level="H3" titleStyle="H5" wrapping="true" />
+                                <Text id="tickCrowns" text="{view>crowns}" />
+                            </VBox>
+                            <SegmentedButton id="tick" selectedKey="{view>decision}" selectionChange=".onTick">
+                                <items>
+                                    <SegmentedButtonItem id="tickYes" key="yes" text="{i18n>yes}" />
+                                    <SegmentedButtonItem id="tickNo" key="no" text="{i18n>no}" />
+                                    <SegmentedButtonItem id="tickLater" key="later" text="{i18n>later}" />
+                                    <SegmentedButtonItem id="tickNone" key="none" text="{i18n>ticksClear}" />
+                                </items>
+                            </SegmentedButton>
+                            <Input id="tickNote" class="csTickNote" width="100%" maxLength="200" value="{view>note}" placeholder="{i18n>ticksNote}" />
+                        </VBox>
+                    </VBox>
+                    <HBox id="tickForm" class="csTickForm" renderType="Bare">
+                        <VBox id="ruleBox" visible="{view>/ticks/askRule}">
+                            <Label id="ruleLabel" text="{i18n>ticksRule}" labelFor="rule" />
+                            <Select id="rule" width="100%" selectedKey="{view>/ticks/rule}" items="{path: 'view>/ticks/rules', templateShareable: false}">
+                                <core:Item id="ruleItem" key="{view>key}" text="{view>text}" />
+                            </Select>
+                        </VBox>
+                        <VBox id="byBox">
+                            <Label id="byLabel" text="{i18n>ticksBy}" labelFor="by" required="true" />
+                            <Input id="by" width="100%" maxLength="80" value="{view>/ticks/by}" valueLiveUpdate="true" />
+                        </VBox>
+                    </HBox>
+                    <Title id="ticksTotal" text="{view>/ticks/total}" level="H3" />
+                </VBox>
+            </content>
+            <beginButton>
+                <Button id="ticksSave" type="Emphasized" text="{i18n>save}" enabled="{= ${view>/ticks/any} &amp;&amp; !!${view>/ticks/by} }" press=".onSaveTicks" />
+            </beginButton>
+            <endButton>
+                <Button id="ticksCancel" text="{i18n>cancel}" press=".onCloseDialog" />
+            </endButton>
+        </Dialog>
+        <Dialog id="demoDialog" title="{i18n>demoTitle}">
+            <content>
+                <VBox id="demoContent" class="sapUiSmallMargin">
+                    <Button id="demoScenario" width="100%" text="{i18n>demoScenario}" press=".onScenario" />
+                    <Button id="demoNow" width="100%" text="{i18n>demoNow}" press=".onNow" />
+                </VBox>
+            </content>
+            <endButton>
+                <Button id="demoClose" text="{i18n>close}" press=".onCloseDialog" />
+            </endButton>
+        </Dialog>
+    </mvc:dependents>
+</mvc:View>

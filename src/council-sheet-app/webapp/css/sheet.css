@@ -1,0 +1,36 @@
+/* The paper itself: black on white on purpose, in every theme, because it gets printed. */
+.csPaper { color: #000; font-family: Arial, Helvetica, sans-serif; font-size: 12pt; line-height: 1.15; }
+.csPage { box-sizing: border-box; background: #fff; }
+.csPaper h1, .csPaper h2, .csPaper h3, .csPaper p { margin: 0; color: #000; }
+.csHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 1rem; border-bottom: 2pt solid #000; }
+.csPaper h1 { font-size: 16pt; }
+.csPaper h2 { margin-top: 4pt; padding-bottom: 1pt; font-size: 12.5pt; border-bottom: 0.75pt solid #000; break-after: avoid; }
+.csPaper h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8pt; font-size: 13pt; }
+.csPaper h3 small { margin-left: auto; font-weight: normal; font-size: 12pt; }
+.csVerdict { margin-top: 2pt; break-inside: avoid; }
+.csVerdictName { min-width: 4.5em; }
+.csVerdictText { padding: 0 4pt; border: 1.25pt solid #000; }
+.csPaper table { width: 100%; border-collapse: collapse; }
+.csPaper th, .csPaper td { padding: 1.5pt 3pt; text-align: left; vertical-align: top; border-bottom: 0.5pt solid #000; }
+.csPaper tr { break-inside: avoid; }
+.csTable:has(th:nth-child(6)) td:nth-child(-n + 4) { white-space: nowrap; }
+.csNumber { width: 1.2em; font-weight: bold; }
+.csPaper td.csTick { width: 2.4em; vertical-align: middle; text-align: center; }
+.csMoney th:nth-child(n + 3) { text-align: center; }
+.csBox { display: inline-block; box-sizing: border-box; width: 13pt; height: 13pt; border: 1.25pt solid #000; line-height: 10.5pt; text-align: center; font-size: 12pt; font-weight: bold; vertical-align: middle; }
+.csTotals { margin-top: 3pt; padding: 2pt 4pt; border: 1.25pt solid #000; break-inside: avoid; }
+.csTotal { font-weight: bold; }
+.csBlank { display: inline-block; min-width: 4em; border-bottom: 1pt solid #000; text-align: center; }
+.csWide { min-width: 12em; }
+.csDoubt::before { content: "? "; font-weight: bold; }
+.csChoices { display: flex; flex-wrap: wrap; gap: 1pt 9pt; }
+.csChoices .csBox { margin-right: 4pt; }
+.csFoot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4pt 1rem; margin-top: 6pt; }
+.csHelp td:first-child { width: 31%; }
+.csHelp td:last-child { width: 33%; font-weight: bold; }
+
+@page { size: A4 portrait; margin: 8mm 11mm; }
+@media print {
+    .csBack { break-before: page; }
+    html, body { margin: 0; background: #fff; }
+}

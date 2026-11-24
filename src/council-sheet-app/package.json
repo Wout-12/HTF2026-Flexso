@@ -1,0 +1,9 @@
+{
+  "name": "oakhaven.council",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monday Council Sheet — where the village money should go, and why",
+  "devDependencies": {
+    "ui5-tooling-transpile": "^3.13.1"
+  }
+}
