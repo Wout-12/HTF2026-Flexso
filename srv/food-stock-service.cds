@@ -35,7 +35,10 @@ service FoodStockService @(path: 'food-stock', impl: 'srv/food-stock-service') {
     virtual null as dueOn           : Date,
     virtual null as recordedOn      : Date,    // day of the count, or of the old record
     virtual null as oldCount        : Boolean, // never counted, or more than 7 days ago
-    virtual null as boardDay        : Date     // the day all of this is about
+    virtual null as boardDay        : Date,    // the day all of this is about
+    virtual null as trustStatus     : String,  // review | notTrusted: Ilse's mark on exactly this value
+    virtual null as trustNote       : String,
+    virtual null as trustAt         : DateTime
   };
 
   @readonly

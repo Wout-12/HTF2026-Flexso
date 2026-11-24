@@ -30,7 +30,12 @@ service WaterSupplyService @(path: 'water-supply', impl: 'srv/water-supply-servi
     virtual null as repairedToday     : Boolean,
     virtual null as deferredToday     : Boolean,
     virtual null as carriedSince      : DateTime, // first "can't today" on an earlier day
-    virtual null as carriedReason     : String
+    virtual null as carriedReason     : String,
+    // Ilse's mark on exactly the value shown: of this pipe, its sensor or one of its repairs
+    virtual null as trustStatus       : String,  // review | notTrusted
+    virtual null as trustNote         : String,
+    virtual null as trustAt           : DateTime,
+    virtual null as trustOn           : String   // WaterPipe | Sensor | Repair
   } actions {
     /** Logs a repair of this pipe, dated now. */
     action logRepair(issue : String, repairedBy : String);

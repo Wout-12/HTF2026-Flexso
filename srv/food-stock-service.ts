@@ -6,8 +6,10 @@
  * and the part of its API this file uses is described in the small interfaces below.
  */
 import { randomUUID } from 'node:crypto';
+import { auditedUpdate } from './lib/change-log';
 import { dayOf, isDemo, realToday, setDemoDay, today } from './lib/demo-clock';
 import { addDays, daysBetween } from './lib/pantry-forecast';
+import { storeScan } from './lib/read-ledger';
 import { readBoard, readItems, readSuppliers, RISK_ORDER, type Board, type Num, type Row } from './lib/read-pantry';
 
 interface StateRow { itemID: string; risk: string; orderState: string }
@@ -46,6 +48,8 @@ const { SELECT, INSERT, UPDATE, UPSERT } = cds.ql;
 const DB = 'oakhaven.curse';
 const OLD_COUNT_DAYS = 7;
 const MAX_QUANTITY = 100_000;
+/** Name in the records; there is no login, so it is fixed here and never comes from the browser. */
+const BAKER = 'tobin.reyes';
 const nowAsDateTime = (): string => `${new Date().toISOString().slice(0, 19)}Z`;
 const isValidQuantity = (value: unknown): boolean => {
   const number = Number(value);
@@ -73,6 +77,9 @@ async function addForecast(results: unknown): Promise<void> {
       recordedOn,
       oldCount: item.countedAt === null || daysBetween(recordedOn, today()) > OLD_COUNT_DAYS,
       boardDay: today(),
+      trustStatus: item.trust?.status ?? null,
+      trustNote: item.trust?.note ?? null,
+      trustAt: item.trust?.at ?? null,
     });
   }
 }
@@ -141,8 +148,12 @@ async function countStock(req: ActionRequest): Promise<string[] | void> {
   }
   await INSERT.into(`${DB}.StockCounts`).entries(counts);
   for (const count of counts) {
-    await UPDATE(`${DB}.StockItems`).with({ currentQuantity: count.counted, stockAsOf: now, countedAt: now }).where({ ID: count.item_ID });
+    await auditedUpdate({
+      entity: 'StockItems', recordType: 'StockItem', id: count.item_ID as string, fields: ['currentQuantity'], who: BAKER, action: 'Count it',
+      changes: { currentQuantity: count.counted, stockAsOf: now, countedAt: now },
+    });
   }
+  await storeScan(); // the new version is looked at on its own
   await checkAlerts();
   return counts.map((count) => count.ID as string);
 }
@@ -186,12 +197,16 @@ async function logDelivery(req: ActionRequest): Promise<string | void> {
     // A number we don't trust stays as it is: the next count includes this delivery.
     if (entry.result.projected !== null) {
       const stock = Math.max(0, entry.result.projected) + Number(line.received);
-      await UPDATE(`${DB}.StockItems`).with({ currentQuantity: stock, stockAsOf: now }).where({ ID: line.item });
+      await auditedUpdate({
+        entity: 'StockItems', recordType: 'StockItem', id: entry.item.ID, fields: ['currentQuantity'], who: BAKER, action: 'Delivery dock',
+        changes: { currentQuantity: stock, stockAsOf: now },
+      });
     }
     if (entry.order) {
       await UPDATE(`${DB}.PurchaseOrders`).with({ open: false, receivedQuantity: line.received }).where({ ID: entry.order.ID });
     }
   }
+  await storeScan();
   await checkAlerts();
   return deliveryID;
 }

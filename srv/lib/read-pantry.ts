@@ -4,6 +4,7 @@
  */
 import { dayOf, realToday, today } from './demo-clock';
 import { forecast, type Forecast } from './pantry-forecast';
+import { readTrust, type Trust } from './read-ledger';
 
 export type Num = number | string | null;
 export type Row = Record<string, unknown>;
@@ -12,6 +13,8 @@ export interface ItemRow {
   ID: string; name: string; unit: string; currentQuantity: Num; minStockLevel: Num; consumptionRate: Num;
   marketDayFactor: Num; supplier_ID: string | null; stockAsOf: string | null; countedAt: string | null;
   modifiedAt: string | null; modifiedBy: string | null;
+  /** Ilse's mark on exactly this value, if there is one. */
+  trust: Trust | null;
 }
 export interface SupplierRow { ID: string; name: string; leadDays: number; isEstimate: boolean | null }
 export interface OrderRow { ID: string; item_ID: string; orderedQuantity: Num; dueOn: string }
@@ -45,16 +48,18 @@ const { SELECT } = cds.ql;
 const DB = 'oakhaven.curse';
 
 export function isTrusted(item: ItemRow): boolean {
-  if (Number(item.currentQuantity) < 0) return false;
+  if (Number(item.currentQuantity) < 0 || item.trust?.status === 'notTrusted') return false;
   const suspicious = item.modifiedBy === SUSPICIOUS_EDIT.by && (item.modifiedAt ?? '').startsWith(SUSPICIOUS_EDIT.at);
   return item.countedAt !== null || !suspicious;
 }
 
 export async function readItems(): Promise<ItemRow[]> {
-  return (await SELECT.from(`${DB}.StockItems`).columns(
+  const trust = await readTrust();
+  const items = (await SELECT.from(`${DB}.StockItems`).columns(
     'ID', 'name', 'unit', 'currentQuantity', 'minStockLevel', 'consumptionRate', 'marketDayFactor',
     'supplier_ID', 'stockAsOf', 'countedAt', 'modifiedAt', 'modifiedBy',
   )) as ItemRow[];
+  return items.map((item) => ({ ...item, trust: trust('StockItem', item.ID, item.currentQuantity, item.modifiedAt) }));
 }
 
 export async function readSuppliers(): Promise<SupplierRow[]> {

@@ -11,6 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import { startDemoSensorFeed } from './lib/demo-freshness';
 import { isDemoScenario, resetDemo, setDemo } from './lib/demo-overrides';
+import { readPipeTrust, storeScan } from './lib/read-ledger';
 import { readRoute } from './lib/read-water';
 
 // 👋 EXAMPLE — the shape of a WaterPipes row as our handler sees it. Every field is optional:
@@ -102,10 +103,12 @@ async function addRoute(results: unknown): Promise<void> {
   );
   if (rows.length === 0) return;
   const route = await readRoute();
+  const trust = await readPipeTrust();
   for (const row of rows) {
     const result = route.get(row.ID ?? '');
     if (!result) continue;
-    Object.assign(row, result.fields);
+    const mark = trust.get(row.ID ?? '');
+    Object.assign(row, result.fields, { trustStatus: mark?.status ?? null, trustNote: mark?.note ?? null, trustAt: mark?.at ?? null, trustOn: mark?.recordType ?? null });
     // Show the readings the tier is based on (they differ from the database only during a demo).
     if ('currentFlowRate' in row) row.currentFlowRate = result.flow;
     if ('currentPressure' in row) row.currentPressure = result.pressure;
@@ -130,7 +133,11 @@ async function logRepair(req: ActionRequest): Promise<void> {
     repairedBy: req.data.repairedBy?.trim() || 'Maren Holt',
     repairDate: nowAsDateTime(),
     tierAtRepair: tier,
+    // Name in the records; there is no login, so it is fixed here and never comes from the browser.
+    createdBy: 'maren.holt',
+    modifiedBy: 'maren.holt',
   });
+  await storeScan(); // the new record is looked at too
 }
 
 async function deferJob(req: ActionRequest): Promise<void> {
