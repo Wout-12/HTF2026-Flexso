@@ -409,6 +409,11 @@ export default class Main extends Controller {
     this.sayRoute();
   }
 
+  public onRepeat(): void {
+    this.spokenIndex = 0;
+    this.sayRoute();
+  }
+
   public onEndShift(): void {
     this.viewModel.setProperty("/started", false);
     this.alarmQueue.length = 0;
@@ -463,8 +468,7 @@ export default class Main extends Controller {
         this.speech.say(jobs.length ? this.spoken(jobs[this.spokenIndex], this.spokenIndex ? "sayNext" : "sayFirst") : this.text("sayNothing"));
         break;
       case "repeat":
-        this.spokenIndex = 0;
-        this.sayRoute();
+        this.onRepeat();
         break;
       default:
         break;

@@ -12,10 +12,11 @@
             <Bar id="header">
                 <contentLeft>
                     <Title id="title" text="{i18n>appTitle}" level="H1" />
-                    <Text id="now" wrapping="false" text="{path: 'view>/now', type: 'DateTime', formatOptions: {pattern: 'EEE d MMM HH:mm'}}" />
+                    <Text id="now" wrapping="false" text="{path: 'view>/now', type: 'DateTime', formatOptions: {pattern: 'd MMM HH:mm'}}" />
                 </contentLeft>
                 <contentRight>
                     <Button id="startButton" icon="sap-icon://media-play" tooltip="{i18n>startShift}" type="Emphasized" visible="{= !${view>/started}}" press=".onStartShift" />
+                    <Button id="repeatButton" icon="sap-icon://sound-loud" tooltip="{i18n>hearAgain}" visible="{view>/started}" press=".onRepeat" />
                     <Button id="endButton" icon="sap-icon://stop" tooltip="{i18n>endShift}" visible="{view>/started}" press=".onEndShift" />
                     <Button id="gloveButton" icon="sap-icon://ti/hand-stop" tooltip="{i18n>gloveMode}" enabled="{= !!${view>/current}}" press=".onGloveOn" />
                 </contentRight>
