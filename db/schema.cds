@@ -187,3 +187,45 @@ entity Evidence : cuid, managed {
   photo      : LargeBinary @Core.MediaType: 'image/jpeg';
   thumb      : LargeBinary @Core.MediaType: 'image/jpeg';
 }
+
+// ---------------------------------------------------------------------------
+// Council — the Monday sheet of Rowan, Hilde and Bram
+// ---------------------------------------------------------------------------
+
+/** The only amounts the council is sure of, in crowns. */
+entity CouncilCosts {
+  key code   : String(20); // repair, emergencyFood, weeklyBudget
+      label  : String;
+      crowns : Integer;
+}
+
+/** A frozen copy of the sheet: what the council had on the table. Never changed afterwards. */
+@assert.unique.copyNo: [ copyNo ]
+entity CouncilSheets : cuid, managed {
+  copyNo        : String(20); // 2026-W48, 2026-W48-2, …
+  ruleVersion   : Integer;
+  dataAsOf      : Timestamp;
+  inputJson     : LargeString;
+  resultJson    : LargeString;
+  previousSheet : Association to CouncilSheets;
+  decidedAt     : DateTime;    // when the ticks were typed in
+  decidedBy     : String(80);
+  decisions     : Composition of many CouncilDecisions on decisions.sheet = $self;
+}
+
+/** One tick of the meeting. A line without a row was not decided and is not funded. */
+@assert.unique.line: [ sheet, lineKey ]
+entity CouncilDecisions : cuid, managed {
+  sheet    : Association to CouncilSheets;
+  lineKey  : String(60);
+  decision : String(5) enum { yes; no; later; };
+  amount   : Integer;
+  note     : String(200);
+}
+
+/** What the council chose about urgent repairs; the newest row counts. */
+entity CouncilRules : cuid, managed {
+  choice    : String(20) enum { marenAtOnce; askHilde; };
+  decidedBy : String(80);
+  decidedAt : DateTime;
+}
