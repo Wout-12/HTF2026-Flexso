@@ -35,7 +35,10 @@
                                 <Title id="jobTitle" wrapping="true" class="wrTitle sapUiTinyMarginEnd" text="{view>slot} · {view>name}" level="H2" titleStyle="H3" />
                                 <ObjectStatus id="jobStatus" text="{view>tierText}" state="{view>state}" icon="{view>icon}" inverted="true" />
                             </HBox>
-                            <Title id="jobAction" text="{view>action}" level="H3" titleStyle="H5" wrapping="true" class="wrAction" />
+                            <HBox id="jobRight" justifyContent="SpaceBetween" alignItems="Center">
+                                <Title id="jobAction" text="{view>action}" level="H3" titleStyle="H5" wrapping="true" class="wrAction" />
+                                <Button id="jobPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" press=".onPhotos" />
+                            </HBox>
                             <Text id="jobReadings" class="wrText" text="{view>readings}" />
                             <Text id="jobAffects" class="wrText" text="{view>affects}" maxLines="2" />
                             <ObjectStatus id="jobUpstream" text="{view>upstream}" icon="sap-icon://ti/arrow-up-circle" state="Information" visible="{= !!${view>upstream}}" />
@@ -63,7 +66,10 @@
                                     <Title id="cardTitle" text="{view>name}" level="H3" titleStyle="H4" wrapping="true" class="wrCardTitle sapUiTinyMarginEnd" />
                                     <ObjectStatus id="cardStatus" text="{view>badge}" state="{view>state}" icon="{view>icon}" inverted="true" />
                                 </HBox>
-                                <Text id="cardText" text="{view>text}" class="wrText" />
+                                <HBox id="cardRight" justifyContent="SpaceBetween" alignItems="Center">
+                                    <Text id="cardText" text="{view>text}" class="wrText" />
+                                    <Button id="cardPhoto" icon="sap-icon://camera" type="Transparent" tooltip="{i18n>photos}" visible="{= ${view>tier} !== 'ilse' }" press=".onPhotos" />
+                                </HBox>
                             </VBox>
                         </VBox>
                     </VBox>
@@ -92,6 +98,30 @@
                     <HBox id="logActions" class="wrDialogActions" renderType="Bare">
                         <c:BigButton id="logCancel" text="{i18n>cancel}" press=".onLogCancel" />
                         <c:BigButton id="logSave" visible="{= !${view>/glove}}" text="{view>/dialog/save}" variant="primary" enabled="{= !!${view>/dialog/text}}" press=".onLogSave" />
+                    </HBox>
+                </VBox>
+            </content>
+        </Dialog>
+        <Dialog id="photoDialog" title="{view>/photo/title}" contentWidth="28rem" busy="{view>/photo/busy}">
+            <content>
+                <VBox id="photoContent" class="wrDialog" renderType="Bare">
+                    <HBox id="photoButtons" class="wrDialogActions" renderType="Bare">
+                        <c:BigButton id="photoBefore" text="{i18n>photoBefore}" press=".onPhotoBefore" />
+                        <c:BigButton id="photoAfter" text="{i18n>photoAfter}" press=".onPhotoAfter" />
+                    </HBox>
+                    <HBox id="photoStrip" wrap="Wrap" items="{path: 'view>/photo/items', templateShareable: false}">
+                        <Image id="photoThumb" class="sapUiTinyMarginEnd sapUiTinyMarginBottom" height="7rem" src="{view>thumbUrl}" alt="{view>caption}" tooltip="{view>caption}" decorative="false">
+                            <detailBox>
+                                <LightBox id="photoBox">
+                                    <imageContent>
+                                        <LightBoxItem id="photoItem" imageSrc="{view>url}" title="{view>caption}" />
+                                    </imageContent>
+                                </LightBox>
+                            </detailBox>
+                        </Image>
+                    </HBox>
+                    <HBox id="photoActions" class="wrDialogActions" renderType="Bare">
+                        <c:BigButton id="photoClose" text="{i18n>close}" press=".onPhotoClose" />
                     </HBox>
                 </VBox>
             </content>

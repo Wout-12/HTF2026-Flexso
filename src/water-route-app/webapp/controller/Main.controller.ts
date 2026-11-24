@@ -16,6 +16,7 @@ import type ODataModel from "sap/ui/model/odata/v4/ODataModel";
 import type ResourceModel from "sap/ui/model/resource/ResourceModel";
 import type { MapPlace } from "../control/VillageMap";
 import Alarm from "../model/Alarm";
+import { listFor, openCamera, toPhoto, upload } from "../model/captureEvidence";
 import Speech, { type Command } from "../model/Speech";
 
 type Tier = "alarm" | "unknown" | "thisWeek" | "ok";
@@ -88,6 +89,7 @@ export default class Main extends Controller {
   private spokenIndex = 0;
   private logMode: "done" | "defer" = "done";
   private logPipe?: Pipe;
+  private photoPipe?: Pipe;
   private destroyed = false;
   private readonly onVisibility = (): void => {
     if (document.visibilityState === "visible" && this.viewModel.getProperty("/started")) void this.keepScreenOn();
@@ -113,6 +115,7 @@ export default class Main extends Controller {
       mapPipes: [],
       mapPlaces: [],
       dialog: { title: "", text: "", save: "", options: [] },
+      photo: { title: "", busy: false, items: [] },
       demoPipe: "",
       demoPipes: [],
     });
@@ -194,6 +197,7 @@ export default class Main extends Controller {
     const current = jobs[0];
     this.viewModel.setProperty("/current", current ? current.ID : null);
     this.viewModel.setProperty("/jobs", jobs.map((pipe) => ({
+      id: pipe.ID,
       slot: pipe.jobSlot,
       name: displayName(pipe.pipeID),
       tier: pipe.tier,
@@ -228,7 +232,7 @@ export default class Main extends Controller {
   }
 
   /** What is left to know once there are no more jobs, in the same style as the jobs. */
-  private cards(): { tier: string; name: string; badge: string; state: string; icon: string; text: string }[] {
+  private cards(): { id: string; tier: string; name: string; badge: string; state: string; icon: string; text: string }[] {
     const cards = this.pipes
       .filter((pipe) => pipe.tier !== "ok" || pipe.repairedToday)
       .map((pipe) => {
@@ -239,11 +243,11 @@ export default class Main extends Controller {
         } else if (pipe.deferredToday) {
           text = this.text("deferred");
         }
-        return { tier: pipe.tier as string, name: displayName(pipe.pipeID), badge: this.text(badge), state: state as string, icon, text };
+        return { id: pipe.ID, tier: pipe.tier as string, name: displayName(pipe.pipeID), badge: this.text(badge), state: state as string, icon, text };
       });
     for (const pipe of this.pipes.filter((item) => item.sendToIlse)) {
       cards.push({
-        tier: "ilse", name: displayName(pipe.pipeID), badge: this.text("ilseBadge"), state: "Information",
+        id: pipe.ID, tier: "ilse", name: displayName(pipe.pipeID), badge: this.text("ilseBadge"), state: "Information",
         icon: "sap-icon://forward", text: this.text("ilseText"),
       });
     }
@@ -404,7 +408,7 @@ export default class Main extends Controller {
     const pipe = this.alarmQueue.shift();
     if (!pipe) return;
     const name = displayName(pipe.pipeID);
-    ["logDialog", "demoDialog"].forEach((id) => (this.byId(id) as Dialog).close());
+    ["logDialog", "demoDialog", "photoDialog"].forEach((id) => (this.byId(id) as Dialog).close());
     this.viewModel.setProperty("/alarmText", [
       this.text("alarmTitle"), name, this.readingsText(pipe), pipe.affects, this.actionText(pipe), "", this.text("alarmOk"),
     ].join("\n"));
@@ -519,6 +523,57 @@ export default class Main extends Controller {
       this.showError(error);
     } finally {
       this.viewModel.setProperty("/busy", false);
+    }
+  }
+
+  // ---- photos ----------------------------------------------------------------------------
+
+  public onPhotos(event: Event): void {
+    const id = (event.getSource() as Control).getBindingContext("view")?.getProperty("id") as string;
+    this.photoPipe = this.pipes.find((pipe) => pipe.ID === id);
+    if (!this.photoPipe) return;
+    this.viewModel.setProperty("/photo", { title: this.text("photosOf", displayName(this.photoPipe.pipeID)), busy: false, items: [] });
+    (this.byId("photoDialog") as Dialog).open();
+    void this.loadPhotos();
+  }
+
+  public onPhotoBefore(): void {
+    this.takePhoto(this.text("photoBefore"));
+  }
+
+  public onPhotoAfter(): void {
+    this.takePhoto(this.text("photoAfter"));
+  }
+
+  public onPhotoClose(): void {
+    (this.byId("photoDialog") as Dialog).close();
+  }
+
+  private takePhoto(note: string): void {
+    const pipe = this.photoPipe;
+    if (pipe) openCamera((file) => void this.storePhoto(pipe, note, file));
+  }
+
+  private async storePhoto(pipe: Pipe, note: string, file: File): Promise<void> {
+    this.viewModel.setProperty("/photo/busy", true);
+    try {
+      await upload("WaterPipe", pipe.ID, note, "Maren Holt", await toPhoto(file));
+      await this.loadPhotos();
+    } catch (error) {
+      this.showError(error);
+    } finally {
+      this.viewModel.setProperty("/photo/busy", false);
+    }
+  }
+
+  private async loadPhotos(): Promise<void> {
+    const pipe = this.photoPipe;
+    if (!pipe) return;
+    try {
+      const items = await listFor("WaterPipe", [pipe.ID]);
+      if (this.photoPipe === pipe && !this.destroyed) this.viewModel.setProperty("/photo/items", items);
+    } catch (error) {
+      Log.warning("Could not read the photos", String(error));
     }
   }
 
