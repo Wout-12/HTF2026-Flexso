@@ -1,0 +1,38 @@
+<mvc:View
+    controllerName="oakhaven.square.controller.Main"
+    xmlns="sap.m"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:core="sap.ui.core"
+    xmlns:c="oakhaven.square.control"
+    core:require="{ DateTime: 'sap/ui/model/type/DateTime' }"
+    displayBlock="true"
+    height="100%">
+    <Page id="page" class="sqPage" showHeader="false">
+        <content>
+            <VBox id="square" class="sqSquare" renderType="Bare">
+                <c:Sky id="sky" />
+                <HBox id="head" class="sqHead" renderType="Bare">
+                    <Title id="title" class="sqTitle" text="{i18n>appTitle}" level="H1" wrapping="true" />
+                    <Text id="now" class="sqNow" text="{path: 'view>/now', type: 'DateTime', formatOptions: {pattern: 'EEE d MMM HH:mm'}}" />
+                </HBox>
+                <MessageStrip id="lost" text="{i18n>lost}" type="Error" showIcon="true" visible="{view>/lost}" />
+                <HBox id="main" class="sqMain" renderType="Bare">
+                    <VBox id="weatherBox" class="sqWeatherBox" renderType="Bare">
+                        <c:Weather id="weather" mood="{view>/mood}" label="{view>/moodText}" />
+                        <Title id="mood" class="sqMoodText" text="{view>/moodText}" level="H2" />
+                        <Text id="sentence" textAlign="Center" class="sqSentence" text="{view>/sentence}" />
+                        <Button id="bell" class="sqBell" icon="sap-icon://ti/bell-ringing" text="{i18n>bellText}" tooltip="{i18n>bell}" press=".onBell" />
+                        <Text id="demo" class="sqDemo" text="{i18n>demo}" visible="{view>/isDemo}" />
+                    </VBox>
+                    <VBox id="board" class="sqBoard" renderType="Bare">
+                        <Title id="newsTitle" class="sqBoardTitle" text="{i18n>newsTitle}" level="H2" />
+                        <HBox id="notices" class="sqNotices" renderType="Bare" items="{path: 'view>/news', templateShareable: false}">
+                            <c:Notice id="notice" text="{view>text}" kind="{view>kind}" kindText="{view>kindText}" icon="{view>icon}" ribbon="{view>ribbon}" />
+                        </HBox>
+                    </VBox>
+                </HBox>
+                <c:Ticker id="ticker" text="{view>/ticker}" label="{i18n>tickerLabel}" />
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>
