@@ -241,7 +241,7 @@ export default class Main extends Controller {
   // ---- map -------------------------------------------------------------------------------
 
   public onMapSelect(event: Event): void {
-    this.select((event.getParameters() as { id: string }).id);
+    this.select((event.getParameters() as { pipe: string }).pipe);
   }
 
   public onShowOnMap(event: Event): void {

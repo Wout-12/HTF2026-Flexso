@@ -82,7 +82,7 @@ export default class VillageMap extends Control {
       /** IDs of the pipes the water takes to get there; the others fade. */
       highlighted: { type: "string[]", defaultValue: [] },
     },
-    events: { select: { parameters: { id: { type: "string" } } } },
+    events: { select: { parameters: { pipe: { type: "string" } } } },
   };
 
   // UI5 calls these for clicks and for Enter / Space.
@@ -98,7 +98,8 @@ export default class VillageMap extends Control {
   private choose(event: Event): void {
     const target = event.target instanceof Element ? event.target.closest("[data-pipe]") : null;
     const id = target?.getAttribute("data-pipe") ?? "";
-    this.fireEvent("select", { id: id === this.getProperty("selected") ? "" : id });
+    // Not "id": UI5 replaces an empty "id" parameter by the ID of the control.
+    this.fireEvent("select", { pipe: id === this.getProperty("selected") ? "" : id });
   }
 
   static renderer = {
