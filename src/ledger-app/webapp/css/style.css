@@ -56,3 +56,7 @@
     .lgColumns[data-open="yes"] .lgList, .lgEmpty { display: none; }
     .lgBack { display: inline-block; }
 }
+
+/* Bigger, easy to read at a desk: everything grows together, also the UI5 controls. */
+@media (min-width: 600px) { .lgLedger { zoom: 1.12; } }
+@media (min-width: 1200px) { .lgLedger { zoom: 1.25; max-width: none; } }
